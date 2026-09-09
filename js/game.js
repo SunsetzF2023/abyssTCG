@@ -127,7 +127,7 @@ function renderHand() {
       <div class="card-body">
         <div class="card-name">${card.name}</div>
         ${card.type === 'minion'
-          ? `<div class="card-mini-stats"><span class="atk">${card.attack}</span>/<span class="hp">${card.health}</span></div>`
+          ? `<div class="card-mini-stats"><span class="atk">${card.attack}</span>/<span class="hp">${card.health}</span></div>${card.text ? `<div class="card-text">${card.text}</div>` : ''}`
           : `<div class="card-text">${card.text}</div>`}
       </div>
     `;
