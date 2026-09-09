@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AbyssTCG · 深渊对决</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+
+<div id="screen-menu" class="screen">
+  <h1 class="title">⚔️ AbyssTCG · 深渊对决</h1>
+  <p class="subtitle">原创随从铺场型卡牌对战 · 选择你的阵营开始对局</p>
+  <div id="faction-grid" class="faction-grid"></div>
+  <p class="mvp-note">当前为最小可玩 Demo：仅人类阵营拥有完整插画，其余阵营先用图标占位，后续逐步补图与新增关键字机制。</p>
+</div>
+
+<div id="screen-battle" class="screen hidden">
+  <div class="hero-row hero-row-ai">
+    <div id="hero-ai-portrait" class="hero-portrait" title="点击进行攻击">
+      <div class="hero-hp">❤️ <span id="hero-ai-hp"></span></div>
+    </div>
+    <div class="hero-info">
+      <div id="hero-ai-faction" class="hero-faction"></div>
+      <div class="hero-mana">💧 <span id="hero-ai-mana"></span></div>
+      <div id="hero-ai-deck" class="hero-deck"></div>
+    </div>
+  </div>
+
+  <div id="board-ai" class="board"></div>
+  <div class="board-divider"></div>
+  <div id="board-player" class="board"></div>
+
+  <div class="hero-row hero-row-player">
+    <div id="hero-player-portrait" class="hero-portrait">
+      <div class="hero-hp">❤️ <span id="hero-player-hp"></span></div>
+    </div>
+    <div class="hero-info">
+      <div id="hero-player-faction" class="hero-faction"></div>
+      <div class="hero-mana">💧 <span id="hero-player-mana"></span></div>
+      <div id="hero-player-deck" class="hero-deck"></div>
+    </div>
+    <button id="btn-end-turn" class="btn-end-turn">结束回合 ▶</button>
+  </div>
+
+  <div id="hand-player" class="hand"></div>
+
+  <div id="log-box" class="log-box"></div>
+</div>
+
+<div id="game-over-overlay" class="overlay hidden">
+  <div class="overlay-box">
+    <div id="game-over-text" class="overlay-text"></div>
+    <button id="btn-play-again" class="btn-primary">返回主菜单</button>
+  </div>
+</div>
+
+<script src="js/factions.js?v=1"></script>
+<script src="js/cards.js?v=1"></script>
+<script src="js/engine.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+</body>
+</html>
