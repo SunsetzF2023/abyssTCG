@@ -141,6 +141,7 @@ function checkWin(game) {
 }
 
 function requiresMinionTarget(card) {
+  if (!card.effect) return false; // minions have no effect object
   const steps = card.effect.type === 'composite' ? card.effect.steps : [card.effect];
   return steps.some(s => ['damageMinion', 'buffMinionTemp', 'damageMinionThenBuffRandomIfDied', 'damageMinionThenDrawIfDied'].includes(s.type));
 }
@@ -356,4 +357,6 @@ function runAiTurn(game) {
   ai.board.filter(m => m.canAttack).forEach(m => {
     if (!game.over) attack(game, 'ai', m.uid, 'hero');
   });
+  // Hand control back to the player once the AI is done.
+  if (!game.over) endTurn(game);
 }
