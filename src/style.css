@@ -130,6 +130,9 @@ body {
   display: flex; align-items: center; gap: 16px; margin-bottom: 12px;
   padding: 8px 0; border-bottom: 1px solid #2a2f45;
 }
+.ab-auth-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.ab-auth-name { font-size: 0.85rem; color: #aab0c6; }
+#ab-auth-btn { font-size: 0.78rem; padding: 6px 10px; }
 .btn-small {
   background: #2a2f45; color: #ccc; border: none; padding: 6px 12px;
   border-radius: 6px; cursor: pointer; font-size: 0.85rem;
