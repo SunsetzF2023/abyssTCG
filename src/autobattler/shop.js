@@ -28,12 +28,12 @@ export const STARTING_HP = 30;    // player hero HP
 // Level 1-6, board size grows from 3 to 7.
 // Shop tier odds shift toward higher tiers as level increases.
 export const LEVEL_TABLE = [
-  { level: 1, boardSize: 3, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0  }, xpNeeded: 2 },
-  { level: 2, boardSize: 4, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0  }, xpNeeded: 2 },
-  { level: 3, boardSize: 5, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0  }, xpNeeded: 4 },
-  { level: 4, boardSize: 6, odds: { 1: 40,  2: 30,  3: 20, 4: 10, 5: 0  }, xpNeeded: 6 },
-  { level: 5, boardSize: 7, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5  }, xpNeeded: 8 },
-  { level: 6, boardSize: 7, odds: { 1: 15,  2: 25,  3: 30, 4: 20, 5: 10 }, xpNeeded: Infinity },
+  { level: 1, boardSize: 3, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
+  { level: 2, boardSize: 4, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
+  { level: 3, boardSize: 5, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0,  6: 0  }, xpNeeded: 4 },
+  { level: 4, boardSize: 6, odds: { 1: 40,  2: 30,  3: 20, 4: 10, 5: 0,  6: 0  }, xpNeeded: 6 },
+  { level: 5, boardSize: 7, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5,  6: 0  }, xpNeeded: 8 },
+  { level: 6, boardSize: 7, odds: { 1: 15,  2: 25,  3: 30, 4: 20, 5: 8,  6: 2  }, xpNeeded: Infinity },
 ];
 
 export const SHOP_SIZE = 4; // pieces shown per roll
@@ -207,9 +207,11 @@ function createMinionInstance(pieceId, star) {
     health: piece.health * mult,
     maxHealth: piece.health * mult,
     ability: piece.ability ? { ...piece.ability } : null,
-    divineShield: piece.ability && piece.ability.type === 'divineShield',
+    shield: piece.ability && piece.ability.type === 'shield',
     hasEnrage: piece.ability && piece.ability.type === 'enrage',
+    enrageActive: false,
     isToken: !!piece.isToken,
+    attacksLeft: piece.ability && piece.ability.type === 'frenzy' ? piece.ability.count : 1,
   };
 }
 

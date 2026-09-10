@@ -109,7 +109,7 @@ function minionCard(m, isPlayer) {
         <span class="atk">⚔️${m.attack}</span>
         <span class="hp">❤️${m.health}</span>
       </div>
-      ${m.divineShield ? '<div class="ab-shield">🛡️</div>' : ''}
+      ${m.shield ? '<div class="ab-shield">🛡️</div>' : ''}
     </div>
   `;
 }
@@ -118,10 +118,17 @@ function abilityLabel(ability) {
   const labels = {
     taunt: '嘲讽',
     cleave: '顺劈',
+    pierce: '贯穿',
     poison: '剧毒',
     enrage: '激怒',
-    divineShield: '圣盾',
+    shield: '护盾',
     deathrattle: '亡语',
+    grow: '成长',
+    firstStrike: '先手',
+    frenzy: '连击',
+    onKill: '击杀',
+    meditate: '冥想',
+    battlecry: '入场',
   };
   return labels[ability.type] || ability.type;
 }
