@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createPlayer, rollShop, reroll, buyPiece, placeMinion,
   tryMerge, autoMerge, buyXP, calculateIncome, maxBoardSize,
-  STARTING_HP, setSeed,
+  STARTING_HP, STARTING_GOLD, BUY_COST, setSeed,
 } from '../src/autobattler/shop.js';
 import { PIECES } from '../src/autobattler/pieces.js';
 import { createGame, resolveCombatPhase, pairPlayers, getStandings, PLAYER_COUNT } from '../src/autobattler/game.js';
@@ -15,7 +15,7 @@ describe('shop — player creation', () => {
   it('creates a player with correct starting stats', () => {
     const p = createPlayer('Test', false);
     expect(p.hp).toBe(STARTING_HP);
-    expect(p.gold).toBe(3);
+    expect(p.gold).toBe(STARTING_GOLD);
     expect(p.level).toBe(1);
     expect(p.board).toHaveLength(6);
     expect(p.board.filter(Boolean)).toHaveLength(0);
@@ -24,36 +24,14 @@ describe('shop — player creation', () => {
 });
 
 describe('shop — income', () => {
-  it('base income is 5 with no interest or streak', () => {
-    const p = createPlayer('Test');
-    p.gold = 0;
-    p.streak = 0;
-    const income = calculateIncome(p);
-    expect(income.base).toBe(5);
-    expect(income.interest).toBe(0);
-    expect(income.streakBonus).toBe(0);
-    expect(income.total).toBe(5);
+  it('round 1 income is 0 (starting gold covers first turn)', () => {
+    expect(calculateIncome(1)).toBe(0);
   });
 
-  it('interest is 1 per gold up to 5', () => {
-    const p = createPlayer('Test');
-    p.gold = 5;
-    const income = calculateIncome(p);
-    expect(income.interest).toBe(5);
-  });
-
-  it('interest caps at 5', () => {
-    const p = createPlayer('Test');
-    p.gold = 20;
-    const income = calculateIncome(p);
-    expect(income.interest).toBe(5);
-  });
-
-  it('streak gives bonus after 2 wins', () => {
-    const p = createPlayer('Test');
-    p.streak = 4;
-    const income = calculateIncome(p);
-    expect(income.streakBonus).toBe(2);
+  it('income from round 2 onward is round + 2', () => {
+    expect(calculateIncome(2)).toBe(4);
+    expect(calculateIncome(3)).toBe(5);
+    expect(calculateIncome(4)).toBe(6);
   });
 });
 
@@ -73,10 +51,9 @@ describe('shop — rolling and buying', () => {
     p.gold = 10;
     rollShop(p);
     const piece = p.shop[0];
-    const cost = piece.tier;
     const result = buyPiece(p, 0);
     expect(result).toBe(true);
-    expect(p.gold).toBe(10 - cost);
+    expect(p.gold).toBe(10 - BUY_COST);
     expect(p.bench).toHaveLength(1);
     expect(p.bench[0].pieceId).toBe(piece.id);
     expect(p.bench[0].star).toBe(1);

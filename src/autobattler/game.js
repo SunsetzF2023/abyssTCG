@@ -11,7 +11,7 @@
 // Pure logic, no DOM access.
 // ============================================================
 
-import { createPlayer, startRound, autoMerge, getCombatBoard, buyXP, reroll, buyPiece, placeMinion } from './shop.js';
+import { createPlayer, startRound, autoMerge, getCombatBoard, buyXP, reroll, buyPiece, placeMinion, BUY_COST } from './shop.js';
 import { resolveBattle } from './battle.js';
 import { setSeed } from './shop.js';
 
@@ -25,8 +25,7 @@ function aiShopPhase(player) {
 
   // Buy pieces if there's room
   for (let i = player.shop.length - 1; i >= 0; i--) {
-    const piece = player.shop[i];
-    if (player.gold >= piece.tier) {
+    if (player.gold >= BUY_COST) {
       const totalPieces = player.board.filter(Boolean).length + player.bench.length;
       if (totalPieces < 12) { // 6 board + up to 6 bench reserve
         buyPiece(player, i);
@@ -70,8 +69,7 @@ function aiShopPhase(player) {
   if (player.gold >= 4) {
     reroll(player);
     for (let i = player.shop.length - 1; i >= 0; i--) {
-      const piece = player.shop[i];
-      if (player.gold >= piece.tier) {
+      if (player.gold >= BUY_COST) {
         const total = player.board.filter(Boolean).length + player.bench.length;
         if (total < 12) {
           buyPiece(player, i);
@@ -99,7 +97,7 @@ export function createGame(humanPlayerName = 'You', seed = Date.now()) {
 
   // Give everyone their first shop
   for (const p of players) {
-    startRound(p);
+    startRound(p, 1);
     if (p.isAI) {
       aiShopPhase(p);
     }
@@ -208,7 +206,7 @@ export function advanceToNextRound(game) {
   // Start next round for alive players
   for (const p of game.players) {
     if (p.hp > 0) {
-      startRound(p);
+      startRound(p, game.round);
       if (p.isAI) {
         aiShopPhase(p);
       }

@@ -13,7 +13,7 @@
 import { createGame, resolveCombatPhase, getStandings, advanceToNextRound } from './game.js';
 import {
   reroll, buyPiece, sellPiece, buyXP, autoMerge, placeMinion, moveToBench,
-  calculateIncome, getLevelInfo,
+  calculateIncome, getLevelInfo, BUY_COST,
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
 import { playBattleAnimation } from './animator.js';
@@ -195,11 +195,11 @@ function renderShop() {
 
   container.innerHTML = player.shop.map((piece, i) => {
     const race = RACE_INFO[piece.race] || { icon: '', color: '#888' };
-    const canAfford = player.gold >= piece.tier;
+    const canAfford = player.gold >= BUY_COST;
     return `
       <div class="ab-shop-piece ${!canAfford ? 'unaffordable' : ''}" data-index="${i}"
            style="border-color:${race.color}">
-        <div class="ab-shop-cost">${piece.tier}💰</div>
+        <div class="ab-shop-cost">${BUY_COST}💰</div>
         <div class="ab-shop-icon">${race.icon}</div>
         <div class="ab-shop-name">${piece.name}</div>
         <div class="ab-shop-stats">⚔️${piece.attack} ❤️${piece.health}</div>
@@ -245,9 +245,8 @@ function openDetailModal(item, options = {}) {
   `;
 
   if (options.shopIndex !== undefined) {
-    const piece = game.players[0].shop[options.shopIndex];
-    const canAfford = game.players[0].gold >= piece.tier;
-    buyBtn.textContent = `购买 (${piece.tier}💰)`;
+    const canAfford = game.players[0].gold >= BUY_COST;
+    buyBtn.textContent = `购买 (${BUY_COST}💰)`;
     buyBtn.disabled = !canAfford;
     buyBtn.classList.remove('hidden');
   } else {
@@ -263,13 +262,14 @@ function closeShopDetail() {
 
 function renderPlayerInfo() {
   const player = game.players[0];
-  const income = calculateIncome(player);
+  const nextRound = game.round + 1;
+  const income = calculateIncome(nextRound);
   const levelInfo = getLevelInfo(player.level);
   document.getElementById('ab-player-info').innerHTML = `
     <span class="ab-gold">💰 ${player.gold}</span>
     <span class="ab-hp">❤️ ${player.hp}</span>
     <span class="ab-level">Lv ${player.level} (${player.xp}/${levelInfo.xpNeeded === Infinity ? 'MAX' : levelInfo.xpNeeded} XP)</span>
-    <span class="ab-income">下回合收入: ${income.total}💰</span>
+    <span class="ab-income">下回合收入: ${income}💰</span>
     <span class="ab-board-count">棋盘: ${player.board.filter(Boolean).length}/6</span>
   `;
 }

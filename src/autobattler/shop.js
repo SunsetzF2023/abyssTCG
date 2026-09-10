@@ -16,12 +16,11 @@ import { PIECES, getPiece } from './pieces.js';
 export const BOARD_LIMIT = 6;     // max minions on the battle board (3 front + 3 back)
 export const BENCH_LIMIT = 9;     // max minions on the bench (hand)
 export const MAX_STAR = 3;        // 3x star-1 -> star-2, 3x star-2 -> star-3
-export const STARTING_GOLD = 3;
-export const MAX_GOLD = 10;       // interest caps at 5 (5 gold = 5*1 interest)
+export const STARTING_GOLD = 4;   // first shop starts with 4 gold
+export const MAX_GOLD = 99;       // practical cap for saved gold
 export const REROLL_COST = 1;
-export const INTEREST_PER_GOLD = 1;
-export const INTEREST_CAP = 5;    // max 5 gold interest
-export const BASE_INCOME = 5;     // base income per round (after round 1)
+export const BUY_COST = 3;        // every shop card/equipment costs 3
+export const SELL_PRICE = 1;      // selling any owned minion gives 1
 export const STARTING_HP = 30;    // player hero HP
 
 // Player level -> board size + shop tier odds.
@@ -89,11 +88,10 @@ export function maxBoardSize(level) {
 
 // ─── Income ────────────────────────────────────────────────────
 
-export function calculateIncome(player) {
-  const base = BASE_INCOME;
-  const interest = Math.min(Math.floor(player.gold / INTEREST_PER_GOLD), INTEREST_CAP);
-  const streakBonus = Math.min(Math.floor(player.streak / 2), 3);
-  return { base, interest, streakBonus, total: base + interest + streakBonus };
+export function calculateIncome(round) {
+  // Round 1 is covered by STARTING_GOLD (4).
+  // From round 2 onward, income = current round + 2 (4, 5, 6, ...).
+  return round <= 1 ? 0 : round + 2;
 }
 
 // ─── Shop operations ───────────────────────────────────────────
@@ -119,9 +117,9 @@ export function reroll(player) {
 export function buyPiece(player, shopIndex) {
   const piece = player.shop[shopIndex];
   if (!piece) return false;
-  if (player.gold < piece.tier) return false;
+  if (player.gold < BUY_COST) return false;
   if (player.bench.length >= BENCH_LIMIT && player.board.filter(Boolean).length >= BOARD_LIMIT) return false;
-  player.gold -= piece.tier;
+  player.gold -= BUY_COST;
   player.shop.splice(shopIndex, 1);
   // Add to bench as a star-1 instance
   player.bench.push(createMinionInstance(piece.id, 1));
@@ -131,16 +129,14 @@ export function buyPiece(player, shopIndex) {
 export function sellPiece(player, minionUid) {
   const benchIdx = player.bench.findIndex((m) => m.uid === minionUid);
   if (benchIdx !== -1) {
-    const minion = player.bench[benchIdx];
     player.bench.splice(benchIdx, 1);
-    player.gold += minion.tier;
+    player.gold += SELL_PRICE;
     return true;
   }
   const boardIdx = player.board.findIndex((m) => m && m.uid === minionUid);
   if (boardIdx !== -1) {
-    const minion = player.board[boardIdx];
     player.board[boardIdx] = null;
-    player.gold += minion.tier;
+    player.gold += SELL_PRICE;
     return true;
   }
   return false;
@@ -372,9 +368,9 @@ export function buyXP(player) {
 
 // ─── Round setup ───────────────────────────────────────────────
 
-export function startRound(player) {
-  const income = calculateIncome(player);
-  player.gold = Math.min(player.gold + income.total, MAX_GOLD + 5); // allow slight overflow
+export function startRound(player, round = 1) {
+  const income = calculateIncome(round);
+  player.gold = Math.min(player.gold + income, MAX_GOLD);
   if (!player.lockedShop) {
     rollShop(player);
   }
