@@ -9,9 +9,21 @@
 
 <div id="screen-menu" class="screen">
   <h1 class="title">⚔️ AbyssTCG · 深渊对决</h1>
-  <p class="subtitle">原创随从铺场型卡牌对战 · 选择你的阵营开始对局</p>
-  <div id="faction-grid" class="faction-grid"></div>
-  <p class="mvp-note">当前为最小可玩 Demo：仅人类阵营拥有完整插画，其余阵营先用图标占位，后续逐步补图与新增关键字机制。</p>
+  <p class="subtitle">原创卡牌对战 · 选择模式开始游戏</p>
+  <div class="mode-select">
+    <div class="mode-card" id="mode-classic">
+      <div class="mode-icon">🗡️</div>
+      <div class="mode-name">经典 1v1</div>
+      <div class="mode-desc">回合制卡牌对战<br>选择阵营 · 抽牌 · 出牌 · 攻击</div>
+    </div>
+    <div class="mode-card" id="mode-autobattler">
+      <div class="mode-icon">♟️</div>
+      <div class="mode-name">战棋模式</div>
+      <div class="mode-desc">8 人自走棋 · 商店购买 · 三合升星<br>自动战斗 · 存活棋子结算伤害</div>
+    </div>
+  </div>
+  <div id="faction-grid" class="faction-grid hidden"></div>
+  <p class="mvp-note">战棋模式为全新开发中功能，棋子与平衡性会持续调整。</p>
 </div>
 
 <div id="screen-battle" class="screen hidden">
@@ -45,6 +57,36 @@
   <div id="hand-player" class="hand"></div>
 
   <div id="log-box" class="log-box"></div>
+</div>
+
+<div id="screen-autobattler" class="screen hidden">
+  <div class="ab-topbar">
+    <button id="ab-back" class="btn-small">← 返回菜单</button>
+    <span id="ab-round" class="ab-round">第 1 回合</span>
+    <span id="ab-phase" class="ab-phase">准备阶段</span>
+  </div>
+
+  <div id="ab-standings" class="ab-standings"></div>
+
+  <div class="ab-battle-area">
+    <div id="ab-enemy-board" class="ab-board ab-enemy-board"></div>
+    <div class="ab-vs">⚔️</div>
+    <div id="ab-player-board" class="ab-board ab-player-board"></div>
+  </div>
+
+  <div id="ab-combat-log" class="ab-combat-log hidden"></div>
+
+  <div class="ab-shop-area">
+    <div id="ab-bench" class="ab-bench"></div>
+    <div id="ab-shop" class="ab-shop"></div>
+    <div class="ab-controls">
+      <button id="ab-reroll" class="btn-ab">🔄 刷新 (1💰)</button>
+      <button id="ab-levelup" class="btn-ab">⬆ 升级 (4💰)</button>
+      <button id="ab-ready" class="btn-ab btn-ready">✅ 准备战斗</button>
+    </div>
+  </div>
+
+  <div id="ab-player-info" class="ab-player-info"></div>
 </div>
 
 <div id="game-over-overlay" class="overlay hidden">
