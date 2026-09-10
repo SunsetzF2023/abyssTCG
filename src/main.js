@@ -1,6 +1,7 @@
 // Entry point — Vite picks this up as the module graph root.
 import './style.css';
 import './game.js';
+import './supabase-config.js';
 import { startAutobattler, setupAutobattlerEvents } from './autobattler/ui.js';
 
 // ─── Mode selection ───────────────────────────────────────────
