@@ -199,8 +199,9 @@ export function resolveCombatPhase(game) {
     game.log.push(game.winner ? `${game.winner.name} wins!` : 'No winner!');
     return;
   }
+}
 
-  // Advance round
+export function advanceToNextRound(game) {
   game.round++;
   game.phase = 'shop';
 

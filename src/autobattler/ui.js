@@ -10,12 +10,13 @@
 // Drag and drop is the primary way to arrange minions.
 // ============================================================
 
-import { createGame, resolveCombatPhase, getStandings } from './game.js';
+import { createGame, resolveCombatPhase, getStandings, advanceToNextRound } from './game.js';
 import {
   reroll, buyPiece, sellPiece, buyXP, autoMerge, placeMinion, moveToBench,
   calculateIncome, getLevelInfo,
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
+import { playBattleAnimation } from './animator.js';
 
 let game = null;
 let draggedUid = null;
@@ -48,6 +49,18 @@ function render() {
   if (!game) return;
   renderTopbar();
   renderStandings();
+
+  if (game.phase === 'combat') {
+    // During combat animation, only show the battle boards (handled by animator)
+    document.getElementById('ab-bench-area').classList.add('hidden');
+    document.getElementById('ab-shop-area').classList.add('hidden');
+    document.getElementById('ab-player-info').classList.add('hidden');
+    return;
+  }
+
+  document.getElementById('ab-bench-area').classList.remove('hidden');
+  document.getElementById('ab-shop-area').classList.remove('hidden');
+  document.getElementById('ab-player-info').classList.remove('hidden');
   renderBoards();
   renderBench();
   renderShop();
@@ -264,6 +277,29 @@ function renderCombatResults() {
   }
 }
 
+function startCombatAnimation() {
+  const player = game.players[0];
+  const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
+
+  if (!myBattle || myBattle.ghost) {
+    // Ghost round: skip animation, show result immediately
+    onBattleAnimationDone();
+    return;
+  }
+
+  document.getElementById('ab-combat-log').classList.add('hidden');
+  document.getElementById('ab-combat-controls').classList.add('hidden');
+  render();
+
+  playBattleAnimation(myBattle.result, onBattleAnimationDone);
+}
+
+function onBattleAnimationDone() {
+  document.getElementById('ab-combat-log').classList.remove('hidden');
+  document.getElementById('ab-combat-controls').classList.remove('hidden');
+  renderCombatResults();
+}
+
 function showAbGameOver(text) {
   document.getElementById('game-over-text').textContent = text;
   document.getElementById('game-over-overlay').classList.remove('hidden');
@@ -376,6 +412,13 @@ export function setupAutobattlerEvents() {
     game.players[0].ready = true;
     autoMerge(game.players[0]);
     resolveCombatPhase(game);
+    startCombatAnimation();
+  });
+
+  // Next round (after combat animation)
+  document.getElementById('ab-next-round').addEventListener('click', () => {
+    if (!game || game.phase !== 'combat') return;
+    advanceToNextRound(game);
     render();
   });
 

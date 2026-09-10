@@ -230,9 +230,9 @@ describe('game flow', () => {
     const game = createGame('Tester');
     game.players[0].ready = true;
     resolveCombatPhase(game);
-    expect(game.round).toBe(2);
+    expect(game.round).toBe(1);
     expect(game.battles.length).toBeGreaterThan(0);
-    expect(game.phase).toBe('shop');
+    expect(game.phase).toBe('combat');
   });
 });
 

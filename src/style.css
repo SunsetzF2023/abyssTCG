@@ -133,6 +133,58 @@ body {
 .ab-auth-area { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 .ab-auth-name { font-size: 0.85rem; color: #aab0c6; }
 #ab-auth-btn { font-size: 0.78rem; padding: 6px 10px; }
+
+.ab-hp-bar { height: 4px; background: #2a2f45; border-radius: 2px; margin-bottom: 4px; overflow: hidden; }
+.ab-hp-fill { height: 100%; background: #6affa0; transition: width 0.2s; }
+
+.ab-minion.ab-hit { animation: hit-shake 0.25s; background: #5a2020; }
+.ab-minion.ab-lunge { transform: scale(1.1); transition: transform 0.15s; }
+.ab-minion.ab-dead { opacity: 0.4; filter: grayscale(100%); transform: scale(0.92); }
+.ab-minion.ab-summon-in { animation: summon-in 0.5s ease-out; }
+
+@keyframes hit-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes summon-in {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.ab-beam {
+  position: fixed; height: 5px; border-radius: 3px; pointer-events: none;
+  transform-origin: 0 50%;
+  background: linear-gradient(90deg, transparent, #4ecdc4, #45b7b8, transparent);
+  box-shadow: 0 0 10px #4ecdc4;
+  animation: beam-fade 0.35s ease-out forwards;
+  z-index: 100;
+}
+.ab-beam.ab-poison-beam {
+  background: linear-gradient(90deg, transparent, #7a4ecc, #9a5dff, transparent);
+  box-shadow: 0 0 10px #7a4ecc;
+}
+
+@keyframes beam-fade {
+  0% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; }
+}
+
+.ab-float-text {
+  position: fixed; font-weight: 700; font-size: 1rem; pointer-events: none;
+  animation: float-up 0.8s ease-out forwards;
+  z-index: 101;
+}
+.ab-dmg { color: #ff6a6a; }
+.ab-heal { color: #6affa0; }
+.ab-buff { color: #6b7fff; }
+.ab-debuff { color: #ff9a5a; }
+
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-45px); opacity: 0; }
+}
 .btn-small {
   background: #2a2f45; color: #ccc; border: none; padding: 6px 12px;
   border-radius: 6px; cursor: pointer; font-size: 0.85rem;
