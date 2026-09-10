@@ -169,7 +169,6 @@ function abilityLabel(ability) {
     taunt: '嘲讽',
     cleave: '顺劈',
     pierce: '贯穿',
-    poison: '剧毒',
     enrage: '激怒',
     shield: '护盾',
     deathrattle: '亡语',

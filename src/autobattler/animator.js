@@ -13,7 +13,6 @@
 import { RACE_INFO } from './pieces.js';
 
 const EVENT_DELAY_MS = 500;
-const BEAM_DURATION_MS = 350;
 
 function otherSide(side) { return side === 'attacker' ? 'defender' : 'attacker'; }
 
@@ -107,23 +106,6 @@ function showFloatingText(card, text, colorClass = '') {
   el.style.top = `${center.y - 20}px`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 900);
-}
-
-function fireBeam(fromCard, toCard, beamClass = '') {
-  if (!fromCard || !toCard) return;
-  const p1 = cardCenter(fromCard);
-  const p2 = cardCenter(toCard);
-  const length = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
-
-  const beam = document.createElement('div');
-  beam.className = `ab-beam ${beamClass}`;
-  beam.style.width = `${length}px`;
-  beam.style.left = `${p1.x}px`;
-  beam.style.top = `${p1.y - 2}px`;
-  beam.style.transform = `rotate(${angle}deg)`;
-  document.body.appendChild(beam);
-  setTimeout(() => beam.remove(), BEAM_DURATION_MS + 50);
 }
 
 function flashCard(card, flashClass, duration = 250) {
@@ -227,11 +209,7 @@ async function playAttackEvent(ev) {
   const target = getCard(otherSide(ev.side), ev.targetUid);
 
   if (attacker && target) {
-    if (ev.isPoison) {
-      fireBeam(attacker, target, 'ab-poison-beam');
-    } else {
-      leapCard(attacker, target);
-    }
+    leapCard(attacker, target);
   } else if (attacker) {
     lungeCard(attacker);
   }

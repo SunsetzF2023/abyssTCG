@@ -40,7 +40,6 @@ export const RACE_INFO = {
 //   shield       — absorbs one hit, refreshes each combat round
 //   cleave       — attack also hits adjacent enemies
 //   pierce       — attack also hits the enemy directly behind the target
-//   poison       — any damage dealt is lethal
 //   enrage       — while below 50% hp, gains +X attack
 //   firstStrike  — attacks once before normal combat starts
 //   onKill       — triggers when this minion kills an enemy
@@ -142,7 +141,7 @@ export const PIECES = [
   {
     id: 't3_phantom', name: '幻影刺客', tier: 3, race: 'ghost',
     attack: 5, health: 2,
-    ability: { type: 'poison' },
+    ability: { type: 'firstStrike' },
   },
   {
     id: 't3_sentinel', name: '重装哨卫', tier: 3, race: 'warrior',
@@ -214,7 +213,7 @@ export const PIECES = [
   {
     id: 't4_wyvern', name: '毒刺飞龙', tier: 4, race: 'dragon',
     attack: 4, health: 5,
-    ability: { type: 'poison' },
+    ability: { type: 'pierce' },
   },
 
   // ─── Tier 5 (cost 5) ──────────────────────────────────────────
@@ -268,7 +267,7 @@ export const PIECES = [
   {
     id: 't6_grim_reaper', name: '深渊收割者', tier: 6, race: 'ghost',
     attack: 8, health: 5,
-    ability: { type: 'poison' },
+    ability: { type: 'cleave' },
   },
   {
     id: 't6_juggernaut', name: '无敌巨像', tier: 6, race: 'warrior',
@@ -333,8 +332,6 @@ export function describeAbility(ability) {
       return '顺劈:攻击时对目标及左右相邻单位造成伤害。';
     case 'pierce':
       return '贯穿:攻击时额外伤害目标后方的单位。';
-    case 'poison':
-      return '剧毒:攻击时无视血量直接击杀目标。';
     case 'enrage':
       return `激怒:生命值首次低于一半时,攻击+${ability.atk || 0}。`;
     case 'grow':

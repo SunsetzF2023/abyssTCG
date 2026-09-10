@@ -5,7 +5,7 @@
 // the battle automatically and returns a result.
 //
 // Supported abilities:
-//   taunt, deathrattle, shield, cleave, pierce, poison, enrage,
+//   taunt, deathrattle, shield, cleave, pierce, enrage,
 //   firstStrike, frenzy, grow, meditate, onKill, battlecry
 // ============================================================
 
@@ -185,7 +185,6 @@ function triggerMeditate(state, m, ownerSide) {
 function triggerOnKill(state, killer, ownerSide) {
   if (!killer.ability || killer.ability.type !== 'onKill') return;
   const ab = killer.ability;
-  const friendly = state[ownerSide].board.filter(Boolean);
   const killerPos = posOf(state[ownerSide].board, killer);
   switch (ab.subtype) {
     case 'buffSelf':
@@ -453,7 +452,6 @@ function performAttack(state, attackerSide, attacker) {
   if (!target) return null;
 
   const atk = effAttack(attacker);
-  const isPoison = attacker.ability && attacker.ability.type === 'poison';
   const isCleave = attacker.ability && attacker.ability.type === 'cleave';
   const isPierce = attacker.ability && attacker.ability.type === 'pierce';
 
@@ -463,14 +461,8 @@ function performAttack(state, attackerSide, attacker) {
   const targetIdx = posOf(enemyBoard, target);
 
   // Main hit
-  let mainDamage;
-  if (isPoison) {
-    mainDamage = target.health;
-    target.health = 0;
-  } else {
-    mainDamage = atk;
-    applyDamage(target, atk);
-  }
+  applyDamage(target, atk);
+  const mainDamage = atk;
 
   logEvent(state, {
     type: 'attack',
@@ -482,7 +474,6 @@ function performAttack(state, attackerSide, attacker) {
     targetName: target.name,
     targetPos: targetIdx,
     damage: mainDamage,
-    isPoison,
   });
 
   // Cleave
@@ -540,29 +531,15 @@ function performAttack(state, attackerSide, attacker) {
 
   // Target retaliates if still alive
   if (target.health > 0) {
-    const targetIsPoison = target.ability && target.ability.type === 'poison';
-    if (targetIsPoison) {
-      attacker.health = 0;
-      logEvent(state, {
-        type: 'counter',
-        side: attackerSide,
-        targetUid: attacker.uid,
-        targetName: attacker.name,
-        targetPos: attackerPos,
-        damage: attacker.health,
-        isPoison: true,
-      });
-    } else {
-      applyDamage(attacker, target.attack);
-      logEvent(state, {
-        type: 'counter',
-        side: attackerSide,
-        targetUid: attacker.uid,
-        targetName: attacker.name,
-        targetPos: attackerPos,
-        damage: target.attack,
-      });
-    }
+    applyDamage(attacker, target.attack);
+    logEvent(state, {
+      type: 'counter',
+      side: attackerSide,
+      targetUid: attacker.uid,
+      targetName: attacker.name,
+      targetPos: attackerPos,
+      damage: target.attack,
+    });
   }
 
   cleanupDead(state, attackerSide);
