@@ -160,6 +160,7 @@ export function placeMinion(player, minionUid, targetPos) {
     const [minion] = player.bench.splice(benchIdx, 1);
     if (existing) player.bench.push(existing);
     player.board[targetPos] = minion;
+    applyBattlecry(player, minion, targetPos);
     return true;
   }
 
@@ -172,6 +173,40 @@ export function placeMinion(player, minionUid, targetPos) {
   }
 
   return false;
+}
+
+function applyBattlecry(player, minion, pos) {
+  if (!minion.ability || minion.ability.type !== 'battlecry' || minion.battlecryTriggered) return;
+  minion.battlecryTriggered = true;
+  const ab = minion.ability;
+  const board = player.board;
+  const others = board.filter((m) => m && m.uid !== minion.uid);
+
+  function buff(m) {
+    m.attack += ab.atk || 0;
+    m.health += ab.hp || 0;
+    m.maxHealth += ab.hp || 0;
+  }
+
+  switch (ab.subtype) {
+    case 'buffRandomAlly': {
+      if (others.length === 0) return;
+      const target = others[Math.floor(Math.random() * others.length)];
+      buff(target);
+      break;
+    }
+    case 'buffAdjacentAllies': {
+      [pos - 1, pos + 1].forEach((i) => {
+        const m = board[i];
+        if (m && m.uid !== minion.uid) buff(m);
+      });
+      break;
+    }
+    case 'buffAlliesIfThree': {
+      if (others.length + 1 >= 3) board.forEach((m) => { if (m && m.uid !== minion.uid) buff(m); });
+      break;
+    }
+  }
 }
 
 export function moveToBench(player, boardPos) {
@@ -214,8 +249,11 @@ function createMinionInstance(pieceId, star) {
     health: piece.health * mult,
     maxHealth: piece.health * mult,
     ability: piece.ability ? { ...piece.ability } : null,
+    description: piece.description || '',
+    flavor: piece.flavor || '',
     shield: piece.ability && piece.ability.type === 'shield',
     hasEnrage: piece.ability && piece.ability.type === 'enrage',
+    battlecryTriggered: false,
     enrageActive: false,
     isToken: !!piece.isToken,
     attacksLeft: piece.ability && piece.ability.type === 'frenzy' ? piece.ability.count : 1,

@@ -86,7 +86,8 @@ function otherSide(side) { return side === 'attacker' ? 'defender' : 'attacker';
 // ─── Triggers ────────────────────────────────────────────────
 
 function triggerBattlecry(state, m, ownerSide) {
-  if (!m.ability || m.ability.type !== 'battlecry') return;
+  if (!m.ability || m.ability.type !== 'battlecry' || m.battlecryTriggered) return;
+  m.battlecryTriggered = true;
   const ab = m.ability;
   const friendly = state[ownerSide].board.filter(Boolean);
   const mPos = posOf(state[ownerSide].board, m);

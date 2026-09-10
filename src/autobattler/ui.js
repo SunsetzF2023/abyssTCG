@@ -22,6 +22,7 @@ let game = null;
 let draggedUid = null;
 let draggedSource = null; // 'bench' or board position number
 let selectedShopIndex = null;
+let isDragging = false;
 
 // ─── Screen management ────────────────────────────────────────
 
@@ -217,26 +218,41 @@ function openShopDetail(index) {
   const piece = game.players[0].shop[index];
   if (!piece) return;
   selectedShopIndex = index;
+  openDetailModal(piece, { shopIndex: index });
+}
 
-  const race = RACE_INFO[piece.race] || { icon: '', color: '#888' };
-  const canAfford = game.players[0].gold >= piece.tier;
+function openMinionDetail(minion) {
+  if (!minion) return;
+  selectedShopIndex = null;
+  openDetailModal(minion, { owned: true });
+}
+
+function openDetailModal(item, options = {}) {
+  const race = RACE_INFO[item.race] || { icon: '', color: '#888' };
   const content = document.getElementById('shop-detail-content');
   const buyBtn = document.getElementById('shop-detail-buy');
 
   content.innerHTML = `
     <div class="detail-icon" style="color:${race.color}">${race.icon}</div>
-    <div class="detail-name" style="color:${race.color}">${piece.name}</div>
-    <div class="detail-race">${race.name} · ${'⭐'.repeat(piece.tier)} · ${piece.attack}⚔️/${piece.health}❤️</div>
+    <div class="detail-name" style="color:${race.color}">${item.name}</div>
+    <div class="detail-race">${race.name} · ${'⭐'.repeat(item.star || item.tier || 1)} · ${item.attack}⚔️/${item.health}❤️</div>
     <div class="detail-stats">
-      <span class="atk">⚔️ ${piece.attack}</span>
-      <span class="hp">❤️ ${piece.health}</span>
+      <span class="atk">⚔️ ${item.attack}</span>
+      <span class="hp">❤️ ${item.health}</span>
     </div>
-    ${piece.ability ? `<div class="detail-ability"><strong>${abilityLabel(piece.ability)}</strong><br>${piece.description || ''}</div>` : '<div class="detail-ability">无特殊技能</div>'}
-    <div class="detail-flavor">"${piece.flavor || ''}"</div>
+    ${item.ability ? `<div class="detail-ability"><strong>${abilityLabel(item.ability)}</strong><br>${item.description || ''}</div>` : '<div class="detail-ability">无特殊技能</div>'}
+    <div class="detail-flavor">"${item.flavor || ''}"</div>
   `;
 
-  buyBtn.textContent = `购买 (${piece.tier}💰)`;
-  buyBtn.disabled = !canAfford;
+  if (options.shopIndex !== undefined) {
+    const piece = game.players[0].shop[options.shopIndex];
+    const canAfford = game.players[0].gold >= piece.tier;
+    buyBtn.textContent = `购买 (${piece.tier}💰)`;
+    buyBtn.disabled = !canAfford;
+    buyBtn.classList.remove('hidden');
+  } else {
+    buyBtn.classList.add('hidden');
+  }
   document.getElementById('shop-detail-modal').classList.remove('hidden');
 }
 
@@ -345,6 +361,7 @@ function onDragStart(e) {
   if (!game || game.phase !== 'shop') return;
   const card = e.target.closest('.ab-minion');
   if (!card) return;
+  isDragging = true;
   const uid = card.dataset.uid;
   const slot = e.target.closest('.ab-board-slot');
   draggedUid = uid;
@@ -359,6 +376,7 @@ function onDragEnd(e) {
   if (card) card.classList.remove('dragging');
   draggedUid = null;
   draggedSource = null;
+  setTimeout(() => { isDragging = false; }, 50);
 }
 
 function onDragOver(e) {
@@ -481,6 +499,29 @@ export function setupAutobattlerEvents() {
     row.addEventListener('dragover', onDragOver);
     row.addEventListener('dragleave', onDragLeave);
     row.addEventListener('drop', onDrop);
+  }
+
+  // Click to view minion details
+  document.getElementById('ab-bench').addEventListener('click', (e) => {
+    if (!game || game.phase !== 'shop' || isDragging) return;
+    const minionEl = e.target.closest('.ab-minion');
+    if (!minionEl) return;
+    const uid = minionEl.dataset.uid;
+    const minion = game.players[0].bench.find((m) => m.uid === uid);
+    openMinionDetail(minion);
+  });
+
+  for (const id of ['ab-player-front', 'ab-player-back']) {
+    document.getElementById(id).addEventListener('click', (e) => {
+      if (!game || game.phase !== 'shop' || isDragging) return;
+      const minionEl = e.target.closest('.ab-minion');
+      if (!minionEl) return;
+      const slot = e.target.closest('.ab-board-slot');
+      if (!slot) return;
+      const pos = parseInt(slot.dataset.pos, 10);
+      const minion = game.players[0].board[pos];
+      openMinionDetail(minion);
+    });
   }
 
   // Right-click to sell
