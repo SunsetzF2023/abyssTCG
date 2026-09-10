@@ -13,7 +13,7 @@
 
 import { PIECES, getPiece } from './pieces.js';
 
-export const BOARD_LIMIT = 7;     // max minions on the battle board
+export const BOARD_LIMIT = 6;     // max minions on the battle board (3 front + 3 back)
 export const BENCH_LIMIT = 9;     // max minions on the bench (hand)
 export const MAX_STAR = 3;        // 3x star-1 -> star-2, 3x star-2 -> star-3
 export const STARTING_GOLD = 3;
@@ -25,15 +25,14 @@ export const BASE_INCOME = 5;     // base income per round (after round 1)
 export const STARTING_HP = 30;    // player hero HP
 
 // Player level -> board size + shop tier odds.
-// Level 1-6, board size grows from 3 to 7.
-// Shop tier odds shift toward higher tiers as level increases.
+// Board is always 6 slots (2 rows x 3 cols). Level mainly improves shop odds.
 export const LEVEL_TABLE = [
-  { level: 1, boardSize: 3, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
-  { level: 2, boardSize: 4, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
-  { level: 3, boardSize: 5, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0,  6: 0  }, xpNeeded: 4 },
+  { level: 1, boardSize: 6, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
+  { level: 2, boardSize: 6, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
+  { level: 3, boardSize: 6, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0,  6: 0  }, xpNeeded: 4 },
   { level: 4, boardSize: 6, odds: { 1: 40,  2: 30,  3: 20, 4: 10, 5: 0,  6: 0  }, xpNeeded: 6 },
-  { level: 5, boardSize: 7, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5,  6: 0  }, xpNeeded: 8 },
-  { level: 6, boardSize: 7, odds: { 1: 15,  2: 25,  3: 30, 4: 20, 5: 8,  6: 2  }, xpNeeded: Infinity },
+  { level: 5, boardSize: 6, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5,  6: 0  }, xpNeeded: 8 },
+  { level: 6, boardSize: 6, odds: { 1: 15,  2: 25,  3: 30, 4: 20, 5: 8,  6: 2  }, xpNeeded: Infinity },
 ];
 
 export const SHOP_SIZE = 4; // pieces shown per roll
@@ -71,7 +70,7 @@ export function createPlayer(name = 'Player', isAI = false) {
     gold: STARTING_GOLD,
     level: 1,
     xp: 0,
-    board: [],      // array of minion instances (on the battlefield)
+    board: [null, null, null, null, null, null], // 6 slots: 0-2 front, 3-5 back
     bench: [],      // array of minion instances (waiting area)
     shop: [],       // array of piece definitions currently offered
     streak: 0,      // win/loss streak counter
@@ -121,7 +120,7 @@ export function buyPiece(player, shopIndex) {
   const piece = player.shop[shopIndex];
   if (!piece) return false;
   if (player.gold < piece.tier) return false;
-  if (player.bench.length >= BENCH_LIMIT && player.board.length >= BOARD_LIMIT) return false;
+  if (player.bench.length >= BENCH_LIMIT && player.board.filter(Boolean).length >= BOARD_LIMIT) return false;
   player.gold -= piece.tier;
   player.shop.splice(shopIndex, 1);
   // Add to bench as a star-1 instance
@@ -130,61 +129,69 @@ export function buyPiece(player, shopIndex) {
 }
 
 export function sellPiece(player, minionUid) {
-  // Find in bench or board
-  let minion = player.bench.find((m) => m.uid === minionUid);
-  let fromBench = true;
-  if (!minion) {
-    minion = player.board.find((m) => m.uid === minionUid);
-    fromBench = false;
-  }
-  if (!minion) return false;
-  if (fromBench) {
-    player.bench = player.bench.filter((m) => m.uid !== minionUid);
-  } else {
-    player.board = player.board.filter((m) => m.uid !== minionUid);
-  }
-  // Refund: star 1 = tier gold, star 2 = tier gold, star 3 = tier gold
-  // (simplified: always refund tier cost, not full investment)
-  player.gold += minion.tier;
-  return true;
-}
-
-// ─── Board management ─────────────────────────────────────────
-
-export function moveMinion(player, minionUid, toBoard) {
-  const fromBoard = !toBoard;
-  const source = fromBoard ? player.board : player.bench;
-  const dest = fromBoard ? player.bench : player.board;
-
-  const idx = source.findIndex((m) => m.uid === minionUid);
-  if (idx === -1) return false;
-
-  if (toBoard && player.board.length >= maxBoardSize(player.level)) return false;
-  if (!toBoard && player.bench.length >= BENCH_LIMIT) return false;
-
-  const [minion] = source.splice(idx, 1);
-  dest.push(minion);
-  return true;
-}
-
-export function swapMinions(player, uidA, uidB) {
-  const aBoard = player.board.find((m) => m.uid === uidA);
-  const bBoard = player.board.find((m) => m.uid === uidB);
-  if (aBoard && bBoard) {
-    const ia = player.board.findIndex((m) => m.uid === uidA);
-    const ib = player.board.findIndex((m) => m.uid === uidB);
-    [player.board[ia], player.board[ib]] = [player.board[ib], player.board[ia]];
+  const benchIdx = player.bench.findIndex((m) => m.uid === minionUid);
+  if (benchIdx !== -1) {
+    const minion = player.bench[benchIdx];
+    player.bench.splice(benchIdx, 1);
+    player.gold += minion.tier;
     return true;
   }
-  const aBench = player.bench.find((m) => m.uid === uidA);
-  const bBench = player.bench.find((m) => m.uid === uidB);
-  if (aBench && bBench) {
-    const ia = player.bench.findIndex((m) => m.uid === uidA);
-    const ib = player.bench.findIndex((m) => m.uid === uidB);
-    [player.bench[ia], player.bench[ib]] = [player.bench[ib], player.bench[ia]];
+  const boardIdx = player.board.findIndex((m) => m && m.uid === minionUid);
+  if (boardIdx !== -1) {
+    const minion = player.board[boardIdx];
+    player.board[boardIdx] = null;
+    player.gold += minion.tier;
     return true;
   }
   return false;
+}
+
+// ─── Board management ─────────────────────────────────────────
+// Board is a fixed 6-slot array: [0,1,2] front row, [3,4,5] back row.
+// `null` means an empty slot.
+
+export function placeMinion(player, minionUid, targetPos) {
+  if (targetPos < 0 || targetPos >= BOARD_LIMIT) return false;
+  const benchIdx = player.bench.findIndex((m) => m && m.uid === minionUid);
+  const boardIdx = player.board.findIndex((m) => m && m.uid === minionUid);
+
+  if (benchIdx !== -1) {
+    const existing = player.board[targetPos];
+    const [minion] = player.bench.splice(benchIdx, 1);
+    if (existing) player.bench.push(existing);
+    player.board[targetPos] = minion;
+    return true;
+  }
+
+  if (boardIdx !== -1) {
+    const existing = player.board[targetPos];
+    const minion = player.board[boardIdx];
+    player.board[targetPos] = minion;
+    player.board[boardIdx] = existing;
+    return true;
+  }
+
+  return false;
+}
+
+export function moveToBench(player, boardPos) {
+  if (boardPos < 0 || boardPos >= BOARD_LIMIT) return false;
+  const minion = player.board[boardPos];
+  if (!minion) return false;
+  if (player.bench.length >= BENCH_LIMIT) return false;
+  player.board[boardPos] = null;
+  player.bench.push(minion);
+  return true;
+}
+
+export function swapBoardSlots(player, posA, posB) {
+  if (posA < 0 || posA >= BOARD_LIMIT || posB < 0 || posB >= BOARD_LIMIT) return false;
+  [player.board[posA], player.board[posB]] = [player.board[posB], player.board[posA]];
+  return true;
+}
+
+export function getEmptyBoardSlot(player) {
+  return player.board.findIndex((m) => m === null);
 }
 
 // ─── Three-copy merge ──────────────────────────────────────────
@@ -217,7 +224,7 @@ function createMinionInstance(pieceId, star) {
 
 export function tryMerge(player, pieceId, star) {
   // Find all copies of this piece at the given star level
-  const all = [...player.board, ...player.bench];
+  const all = [...player.board.filter(Boolean), ...player.bench];
   const copies = all.filter((m) => m.pieceId === pieceId && m.star === star);
   if (copies.length < 3) return null;
 
@@ -235,7 +242,7 @@ export function tryMerge(player, pieceId, star) {
   // Then board copies
   for (const m of player.board) {
     if (removed >= 3) break;
-    if (m.pieceId === pieceId && m.star === star && !toRemove.has(m.uid)) {
+    if (m && m.pieceId === pieceId && m.star === star && !toRemove.has(m.uid)) {
       toRemove.add(m.uid);
       removed++;
     }
@@ -244,7 +251,11 @@ export function tryMerge(player, pieceId, star) {
   if (removed < 3) return null;
 
   player.bench = player.bench.filter((m) => !toRemove.has(m.uid));
-  player.board = player.board.filter((m) => !toRemove.has(m.uid));
+  for (let i = 0; i < player.board.length; i++) {
+    if (player.board[i] && toRemove.has(player.board[i].uid)) {
+      player.board[i] = null;
+    }
+  }
 
   // Create the upgraded minion
   const newStar = Math.min(star + 1, MAX_STAR);
@@ -253,10 +264,13 @@ export function tryMerge(player, pieceId, star) {
   // Place on bench (or board if bench is full and board has space)
   if (player.bench.length < BENCH_LIMIT) {
     player.bench.push(upgraded);
-  } else if (player.board.length < maxBoardSize(player.level)) {
-    player.board.push(upgraded);
   } else {
-    player.bench.push(upgraded); // force onto bench even if over limit temporarily
+    const emptySlot = getEmptyBoardSlot(player);
+    if (emptySlot !== -1) {
+      player.board[emptySlot] = upgraded;
+    } else {
+      player.bench.push(upgraded); // force onto bench even if over limit temporarily
+    }
   }
 
   return upgraded;
@@ -268,7 +282,7 @@ export function autoMerge(player) {
   let changed = true;
   while (changed) {
     changed = false;
-    const all = [...player.board, ...player.bench];
+    const all = [...player.board.filter(Boolean), ...player.bench];
     const counts = {};
     for (const m of all) {
       const key = m.pieceId + ':' + m.star;
@@ -320,5 +334,5 @@ export function startRound(player) {
 }
 
 export function getCombatBoard(player) {
-  return player.board.map((m) => ({ ...m }));
+  return player.board.map((m) => m ? { ...m } : null);
 }

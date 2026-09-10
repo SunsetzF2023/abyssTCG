@@ -1,8 +1,8 @@
 // ============================================================
 // Auto-battle engine — AbyssTCG autobattler mode
 //
-// Pure logic. Given two boards, resolves the battle automatically and
-// returns a result with the winner, survivors, and a log of events.
+// Pure logic. Given two 6-slot boards (3 front + 3 back), resolves
+// the battle automatically and returns a result.
 //
 // Supported abilities:
 //   taunt, deathrattle, shield, cleave, pierce, poison, enrage,
@@ -35,7 +35,6 @@ export function createMinion(pieceId, star = 1) {
     enrageActive: false,
     canAttack: true,
     isToken: !!piece.isToken,
-    // Frenzy pieces attack multiple times per round
     attacksLeft: piece.ability && piece.ability.type === 'frenzy' ? piece.ability.count : 1,
   };
   return m;
@@ -46,12 +45,21 @@ function effAttack(m) {
   return m.enrageActive ? m.attack + m.ability.atk : m.attack;
 }
 
-/** Picks a target: random Taunt if any, else random alive minion. */
+/** Picks a target: front-row Taunt > front-row > back-row Taunt > back-row. */
 function pickTarget(board) {
-  const taunts = board.filter((m) => m.health > 0 && m.ability && m.ability.type === 'taunt');
-  const pool = taunts.length > 0 ? taunts : board.filter((m) => m.health > 0);
-  if (pool.length === 0) return null;
-  return pool[Math.floor(Math.random() * pool.length)];
+  // board is a 6-slot array: 0-2 front, 3-5 back
+  const alive = (m) => m && m.health > 0;
+  const front = board.slice(0, 3).filter(alive);
+  const back = board.slice(3, 6).filter(alive);
+
+  function pick(pool) {
+    if (pool.length === 0) return null;
+    const taunts = pool.filter((m) => m.ability && m.ability.type === 'taunt');
+    const candidates = taunts.length > 0 ? taunts : pool;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  return pick(front) || pick(back);
 }
 
 /** Applies one instance of damage to a minion, returning true if it died. */
@@ -63,33 +71,25 @@ function applyDamage(minion, value) {
   }
   minion.health -= value;
   if (minion.hasEnrage && !minion.enrageActive && minion.health > 0) {
-    if (minion.health <= minion.maxHealth / 2) {
-      minion.enrageActive = true;
-    }
+    if (minion.health <= minion.maxHealth / 2) minion.enrageActive = true;
   }
   return minion.health <= 0;
-}
-
-/** Deals `value` damage to `target` and returns true if target died. */
-function dealDamage(target, value) {
-  return applyDamage(target, value);
 }
 
 function otherSide(side) { return side === 'attacker' ? 'defender' : 'attacker'; }
 
 // ─── Triggers ────────────────────────────────────────────────
 
-/** Triggers a battlecry (when minion is placed / combat starts). */
 function triggerBattlecry(state, m, ownerSide) {
   if (!m.ability || m.ability.type !== 'battlecry') return;
   const ab = m.ability;
-  const friendly = state[ownerSide].board;
+  const friendly = state[ownerSide].board.filter(Boolean);
   switch (ab.subtype) {
     case 'buffRandomAlly':
       buffRandom(friendly, ab, m.uid);
       break;
     case 'buffAdjacentAllies':
-      buffAdjacent(friendly, m, ab);
+      buffAdjacent(state[ownerSide].board, m, ab);
       break;
     case 'buffAlliesIfThree':
       if (friendly.length >= 3) buffAll(friendly, ab, m.uid);
@@ -97,24 +97,23 @@ function triggerBattlecry(state, m, ownerSide) {
   }
 }
 
-/** Triggers meditation at the start of each combat round. */
 function triggerMeditate(state, m, ownerSide) {
   if (!m.ability || m.ability.type !== 'meditate') return;
   const ab = m.ability;
-  const friendly = state[ownerSide].board;
-  const enemy = state[otherSide(ownerSide)].board;
+  const friendly = state[ownerSide].board.filter(Boolean);
+  const enemy = state[otherSide(ownerSide)].board.filter(Boolean);
   switch (ab.subtype) {
     case 'healSelf':
       m.health = Math.min(m.health + ab.value, m.maxHealth);
       break;
     case 'healAdjacentAllies':
-      healAdjacent(friendly, m, ab.value);
+      healAdjacent(state[ownerSide].board, m, ab.value);
       break;
     case 'healAllAllies':
       friendly.forEach((x) => { if (x.health > 0) x.health = Math.min(x.health + ab.value, x.maxHealth); });
       break;
     case 'damageRandomEnemy':
-      if (enemy.length > 0) dealDamage(enemy[Math.floor(Math.random() * enemy.length)], ab.value);
+      if (enemy.length > 0) applyDamage(enemy[Math.floor(Math.random() * enemy.length)], ab.value);
       break;
     case 'buffAllies':
       buffAll(friendly, ab, m.uid);
@@ -122,11 +121,10 @@ function triggerMeditate(state, m, ownerSide) {
   }
 }
 
-/** Triggers an on-kill effect. */
 function triggerOnKill(state, killer, ownerSide) {
   if (!killer.ability || killer.ability.type !== 'onKill') return;
   const ab = killer.ability;
-  const friendly = state[ownerSide].board;
+  const friendly = state[ownerSide].board.filter(Boolean);
   switch (ab.subtype) {
     case 'buffSelf':
       killer.attack += ab.atk;
@@ -134,7 +132,6 @@ function triggerOnKill(state, killer, ownerSide) {
       killer.maxHealth += ab.hp;
       break;
     case 'gainGold':
-      // Hero gold not modeled in combat; instead buff self
       killer.attack += 1;
       killer.health += 1;
       killer.maxHealth += 1;
@@ -145,7 +142,6 @@ function triggerOnKill(state, killer, ownerSide) {
   }
 }
 
-/** Triggers a deathrattle. */
 function triggerDeathrattle(state, dyingMinion, ownerSide) {
   if (!dyingMinion.ability || dyingMinion.ability.type !== 'deathrattle') return;
   const ab = dyingMinion.ability;
@@ -155,22 +151,25 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
   switch (ab.subtype) {
     case 'summon': {
       for (let i = 0; i < ab.count; i++) {
-        if (friendlyBoard.length < 7) friendlyBoard.push(createMinion(ab.token, 1));
+        const emptyIdx = friendlyBoard.findIndex((m) => m === null || m.health <= 0);
+        if (emptyIdx !== -1) {
+          friendlyBoard[emptyIdx] = createMinion(ab.token, 1);
+        }
       }
       break;
     }
     case 'damageRandomEnemy': {
-      const alive = enemyBoard.filter((m) => m.health > 0);
-      if (alive.length > 0) dealDamage(alive[Math.floor(Math.random() * alive.length)], ab.value);
+      const alive = enemyBoard.filter((m) => m && m.health > 0);
+      if (alive.length > 0) applyDamage(alive[Math.floor(Math.random() * alive.length)], ab.value);
       break;
     }
     case 'damageAllEnemies': {
-      enemyBoard.forEach((m) => { if (m.health > 0) dealDamage(m, ab.value); });
+      enemyBoard.forEach((m) => { if (m && m.health > 0) applyDamage(m, ab.value); });
       break;
     }
     case 'buffAllies': {
       friendlyBoard.forEach((m) => {
-        if (m.health > 0 && m.uid !== dyingMinion.uid) {
+        if (m && m.health > 0 && m.uid !== dyingMinion.uid) {
           m.attack += ab.atk;
           m.health += ab.hp;
           m.maxHealth += ab.hp;
@@ -180,12 +179,10 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
     }
     case 'weakenAllEnemies': {
       enemyBoard.forEach((m) => {
-        if (m.health > 0) {
-          m.attack = Math.max(1, m.attack + ab.atk); // atk should be negative
+        if (m && m.health > 0) {
+          m.attack = Math.max(1, m.attack + ab.atk);
           m.health += ab.hp;
-          if (m.health <= 0) {
-            triggerDeathrattle(state, m, otherSide(ownerSide));
-          }
+          if (m.health <= 0) triggerDeathrattle(state, m, otherSide(ownerSide));
         }
       });
       break;
@@ -195,7 +192,7 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
 
 function buffAll(board, ab, excludeUid) {
   board.forEach((m) => {
-    if (m.health > 0 && m.uid !== excludeUid) {
+    if (m && m.health > 0 && m.uid !== excludeUid) {
       m.attack += ab.atk;
       m.health += ab.hp;
       m.maxHealth += ab.hp;
@@ -204,7 +201,7 @@ function buffAll(board, ab, excludeUid) {
 }
 
 function buffRandom(board, ab, excludeUid) {
-  const alive = board.filter((m) => m.health > 0 && m.uid !== excludeUid);
+  const alive = board.filter((m) => m && m.health > 0 && m.uid !== excludeUid);
   if (alive.length === 0) return;
   const target = alive[Math.floor(Math.random() * alive.length)];
   target.attack += ab.atk;
@@ -236,19 +233,20 @@ function healAdjacent(board, m, value) {
 
 /** Removes dead minions and triggers their deathrattles. */
 function cleanupDead(state, side) {
-  let board = state[side].board;
-  const dead = board.filter((m) => m.health <= 0);
-  dead.forEach((m) => triggerDeathrattle(state, m, side));
+  const board = state[side].board;
+  const other = otherSide(side);
 
-  // Weaken may have killed enemy minions; clean both sides
-  const both = [side, otherSide(side)];
-  both.forEach((s) => {
-    const dead2 = state[s].board.filter((m) => m.health <= 0);
-    dead2.forEach((m) => {
-      if (!state[s].board.includes(m)) return; // already processed
-      triggerDeathrattle(state, m, s);
-    });
-    state[s].board = state[s].board.filter((m) => m.health > 0);
+  // Trigger deathrattles for each dead minion
+  board.forEach((m) => {
+    if (m && m.health <= 0) triggerDeathrattle(state, m, side);
+  });
+  state[other].board.forEach((m) => {
+    if (m && m.health <= 0) triggerDeathrattle(state, m, other);
+  });
+
+  // Clear dead minions from slots
+  ['attacker', 'defender'].forEach((s) => {
+    state[s].board = state[s].board.map((m) => (m && m.health > 0 ? m : null));
   });
 }
 
@@ -270,42 +268,40 @@ function performAttack(state, attackerSide, attacker) {
   if (isPoison) {
     target.health = 0;
   } else {
-    dealDamage(target, atk);
+    applyDamage(target, atk);
   }
 
   // Cleave
   if (isCleave) {
     if (targetIdx > 0) {
       const left = enemyBoard[targetIdx - 1];
-      if (left && left.health > 0) dealDamage(left, atk);
+      if (left && left.health > 0) applyDamage(left, atk);
     }
     if (targetIdx >= 0 && targetIdx < enemyBoard.length - 1) {
       const right = enemyBoard[targetIdx + 1];
-      if (right && right.health > 0) dealDamage(right, atk);
+      if (right && right.health > 0) applyDamage(right, atk);
     }
   }
 
-  // Pierce — also hit minion behind the target
+  // Pierce
   if (isPierce) {
     if (targetIdx >= 0 && targetIdx < enemyBoard.length - 1) {
       const behind = enemyBoard[targetIdx + 1];
-      if (behind && behind.health > 0) dealDamage(behind, atk);
+      if (behind && behind.health > 0) applyDamage(behind, atk);
     }
   }
 
   // Target retaliates if still alive
-  const targetWasAlive = target.health > 0;
-  if (targetWasAlive) {
+  if (target.health > 0) {
     const targetIsPoison = target.ability && target.ability.type === 'poison';
     if (targetIsPoison) {
       attacker.health = 0;
     } else {
-      dealDamage(attacker, target.attack);
+      applyDamage(attacker, target.attack);
     }
   }
 
   cleanupDead(state, attackerSide);
-  cleanupDead(state, defenderSide);
 
   // On-kill check
   if (target.health <= 0 && attacker.health > 0) {
@@ -322,54 +318,54 @@ function performAttack(state, attackerSide, attacker) {
   return target;
 }
 
-/** Builds attack order alternating sides, leftmost-first. */
+/** Builds attack order: left-to-right across the 6 slots, alternating sides. */
 function buildAttackOrder(state) {
   const order = [];
-  const a = state.attacker.board.filter((m) => m.health > 0);
-  const d = state.defender.board.filter((m) => m.health > 0);
-  const max = Math.max(a.length, d.length);
+  const max = Math.max(state.attacker.board.length, state.defender.board.length);
   for (let i = 0; i < max; i++) {
-    if (a[i]) order.push({ side: 'attacker', minion: a[i] });
-    if (d[i]) order.push({ side: 'defender', minion: d[i] });
+    const a = state.attacker.board[i];
+    const d = state.defender.board[i];
+    if (a) order.push({ side: 'attacker', minion: a });
+    if (d) order.push({ side: 'defender', minion: d });
   }
   return order;
 }
 
-/** Resolves one full round of attacks (each surviving minion gets to attack). */
+function minionsAlive(board) {
+  return board.filter((m) => m && m.health > 0).length;
+}
+
+/** Resolves one full round of attacks. */
 function combatRound(state) {
-  // Round start: grow, meditate, refresh shield, reset attacks
+  // Round start: grow, meditate, refresh shields, reset attacks
   for (const side of ['attacker', 'defender']) {
     for (const m of state[side].board) {
-      if (m.health <= 0) continue;
-      // Refresh shield if base ability is shield
+      if (!m || m.health <= 0) continue;
       if (m.ability && m.ability.type === 'shield') m.shield = true;
-      // Grow
       if (m.ability && m.ability.type === 'grow') {
         m.attack += m.ability.atk;
         m.health += m.ability.hp;
         m.maxHealth += m.ability.hp;
       }
-      // Meditate
       triggerMeditate(state, m, side);
-      // Reset attacks
       m.attacksLeft = m.ability && m.ability.type === 'frenzy' ? m.ability.count : 1;
     }
   }
 
-  // First strike — one extra attack for each first-strike minion, in order
+  // First strike
   const allFirst = [];
   for (const side of ['attacker', 'defender']) {
-    for (const m of state[side].board) {
-      if (m.health > 0 && m.ability && m.ability.type === 'firstStrike') {
+    for (let i = 0; i < state[side].board.length; i++) {
+      const m = state[side].board[i];
+      if (m && m.health > 0 && m.ability && m.ability.type === 'firstStrike') {
         allFirst.push({ side, minion: m });
       }
     }
   }
-  // First-strike attackers act alternately, attacker side first
   allFirst.sort((a, b) => (a.side === 'attacker' ? -1 : 1) - (b.side === 'attacker' ? -1 : 1));
   for (const { side, minion } of allFirst) {
     if (minion.health > 0) {
-      const attacker = state[side].board.find((x) => x.uid === minion.uid);
+      const attacker = state[side].board.find((x) => x && x.uid === minion.uid);
       if (attacker) performAttack(state, side, attacker);
     }
   }
@@ -380,54 +376,57 @@ function combatRound(state) {
   if (attackOrder.length === 0) return false;
 
   for (const entry of attackOrder) {
-    if (state.attacker.board.length === 0 || state.defender.board.length === 0) break;
+    if (minionsAlive(state.attacker.board) === 0 || minionsAlive(state.defender.board) === 0) break;
 
-    const stillAlive = state[entry.side].board.find((m) => m.uid === entry.minion.uid);
+    const stillAlive = state[entry.side].board.find((m) => m && m.uid === entry.minion.uid);
     if (!stillAlive || stillAlive.attacksLeft <= 0) continue;
 
     while (stillAlive.attacksLeft > 0 && stillAlive.health > 0) {
       stillAlive.attacksLeft--;
       anyAttack = true;
       performAttack(state, entry.side, stillAlive);
-      if (state.attacker.board.length === 0 || state.defender.board.length === 0) break;
-      if (stillAlive.attacksLeft <= 0) break;
-      // For frenzy, the same target may have died; pick a new one next attack
+      if (minionsAlive(state.attacker.board) === 0 || minionsAlive(state.defender.board) === 0) break;
     }
   }
 
   return anyAttack;
 }
 
-/** Resolves a full battle between two boards. */
+/** Resolves a full battle between two 6-slot boards. */
 export function resolveBattle(attackerBoard, defenderBoard) {
-  const clone = (m) => ({
-    ...m,
-    ability: m.ability ? { ...m.ability } : null,
-  });
+  // Pad or clone boards to 6-slot arrays with nulls
+  const clone = (m) => m ? { ...m, ability: m.ability ? { ...m.ability } : null } : null;
+  const normalize = (board) => {
+    const arr = new Array(6).fill(null);
+    for (let i = 0; i < Math.min(board.length, 6); i++) {
+      arr[i] = clone(board[i]);
+    }
+    return arr;
+  };
+
   const state = {
-    attacker: { board: attackerBoard.map(clone) },
-    defender: { board: defenderBoard.map(clone) },
+    attacker: { board: normalize(attackerBoard) },
+    defender: { board: normalize(defenderBoard) },
     log: [],
   };
 
   // Battlecry on combat start
   for (const side of ['attacker', 'defender']) {
     for (const m of state[side].board) {
-      triggerBattlecry(state, m, side);
+      if (m) triggerBattlecry(state, m, side);
     }
   }
   cleanupDead(state, 'attacker');
-  cleanupDead(state, 'defender');
 
   let safety = 0;
   const MAX_ITERATIONS = 100;
-  while (state.attacker.board.length > 0 && state.defender.board.length > 0 && safety < MAX_ITERATIONS) {
+  while (minionsAlive(state.attacker.board) > 0 && minionsAlive(state.defender.board) > 0 && safety < MAX_ITERATIONS) {
     safety++;
     if (!combatRound(state)) break;
   }
 
-  const aAlive = state.attacker.board.length;
-  const dAlive = state.defender.board.length;
+  const aAlive = minionsAlive(state.attacker.board);
+  const dAlive = minionsAlive(state.defender.board);
   let winner;
   let survivors;
   let damageDealt = 0;
@@ -437,11 +436,14 @@ export function resolveBattle(attackerBoard, defenderBoard) {
     survivors = [];
   } else if (dAlive === 0) {
     winner = 'attacker';
-    survivors = state.attacker.board;
+    survivors = state.attacker.board.filter(Boolean);
   } else {
     winner = 'defender';
-    survivors = state.defender.board;
+    survivors = state.defender.board.filter(Boolean);
   }
+
+  const attackerSurvivors = state.attacker.board.filter(Boolean);
+  const defenderSurvivors = state.defender.board.filter(Boolean);
 
   if (winner !== 'draw') {
     damageDealt = survivors.reduce((sum, m) => sum + m.tier * m.star, 0);
@@ -450,6 +452,8 @@ export function resolveBattle(attackerBoard, defenderBoard) {
   return {
     winner,
     survivors: survivors.map((m) => ({ ...m })),
+    attackerSurvivors: attackerSurvivors.map((m) => ({ ...m })),
+    defenderSurvivors: defenderSurvivors.map((m) => ({ ...m })),
     damageDealt,
     log: state.log,
     iterations: safety,

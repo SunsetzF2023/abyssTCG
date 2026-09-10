@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  createPlayer, rollShop, reroll, buyPiece, moveMinion,
+  createPlayer, rollShop, reroll, buyPiece, placeMinion,
   tryMerge, autoMerge, buyXP, calculateIncome, maxBoardSize,
-  BENCH_LIMIT, STARTING_HP, setSeed,
+  STARTING_HP, setSeed,
 } from '../src/autobattler/shop.js';
 import { PIECES } from '../src/autobattler/pieces.js';
 import { createGame, resolveCombatPhase, pairPlayers, getStandings, PLAYER_COUNT } from '../src/autobattler/game.js';
@@ -17,7 +17,8 @@ describe('shop — player creation', () => {
     expect(p.hp).toBe(STARTING_HP);
     expect(p.gold).toBe(3);
     expect(p.level).toBe(1);
-    expect(p.board).toHaveLength(0);
+    expect(p.board).toHaveLength(6);
+    expect(p.board.filter(Boolean)).toHaveLength(0);
     expect(p.bench).toHaveLength(0);
   });
 });
@@ -101,38 +102,34 @@ describe('shop — rolling and buying', () => {
 });
 
 describe('shop — board management', () => {
-  it('moveMinion transfers between bench and board', () => {
+  it('placeMinion moves from bench to board', () => {
     const p = createPlayer('Test');
     p.gold = 10;
     rollShop(p);
     buyPiece(p, 0);
     const uid = p.bench[0].uid;
-    expect(moveMinion(p, uid, true)).toBe(true);
+    expect(placeMinion(p, uid, 0)).toBe(true);
     expect(p.bench).toHaveLength(0);
-    expect(p.board).toHaveLength(1);
+    expect(p.board[0]).toBeTruthy();
+    expect(p.board[0].uid).toBe(uid);
   });
 
-  it('cannot exceed board size limit', () => {
+  it('placeMinion swaps board positions', () => {
     const p = createPlayer('Test');
-    p.level = 1;
-    p.gold = 20;
-    // Fill bench
-    for (let r = 0; r < 6; r++) {
-      rollShop(p);
-      for (let i = 0; i < p.shop.length; i++) {
-        if (p.gold >= p.shop[i].tier && p.bench.length < BENCH_LIMIT) {
-          buyPiece(p, i);
-        }
-      }
-    }
-    // Move up to board limit (3 at level 1)
-    for (let i = 0; i < 3; i++) {
-      if (p.bench[0]) moveMinion(p, p.bench[0].uid, true);
-    }
-    expect(p.board).toHaveLength(3);
-    if (p.bench[0]) {
-      expect(moveMinion(p, p.bench[0].uid, true)).toBe(false);
-    }
+    const m1 = { uid: 'm1', pieceId: 'x', name: 'A', race: 'neutral', tier: 1, star: 1, attack: 1, health: 1, maxHealth: 1 };
+    const m2 = { uid: 'm2', pieceId: 'y', name: 'B', race: 'neutral', tier: 1, star: 1, attack: 2, health: 2, maxHealth: 2 };
+    p.board[0] = m1;
+    p.board[1] = m2;
+    placeMinion(p, 'm1', 1);
+    expect(p.board[0]).toBe(m2);
+    expect(p.board[1]).toBe(m1);
+  });
+
+  it('cannot place beyond board limit', () => {
+    const p = createPlayer('Test');
+    const m = { uid: 'm1', pieceId: 'x', name: 'A', race: 'neutral', tier: 1, star: 1, attack: 1, health: 1, maxHealth: 1 };
+    p.bench.push(m);
+    expect(placeMinion(p, 'm1', 6)).toBe(false);
   });
 });
 
@@ -159,7 +156,7 @@ describe('shop — three-copy merge', () => {
     expect(result.star).toBe(2);
     expect(result.attack).toBe(piece.attack * 2);
     expect(result.health).toBe(piece.health * 2);
-    expect(p.bench.length + p.board.length).toBe(1);
+    expect(p.bench.length + p.board.filter(Boolean).length).toBe(1);
   });
 
   it('autoMerge finds and merges all triples', () => {
@@ -196,15 +193,8 @@ describe('shop — leveling', () => {
     expect(p.gold).toBe(6);
   });
 
-  it('leveling up increases board size', () => {
+  it('max board size is 6 at all levels', () => {
     const p = createPlayer('Test');
-    expect(maxBoardSize(p.level)).toBe(3);
-    p.gold = 30;
-    // Two buyXP calls: 4+4 = 8 XP
-    // L1->L2 (2), L2->L3 (2), L3->L4 (4) -> 4 levels total
-    buyXP(p);
-    buyXP(p);
-    expect(p.level).toBe(4);
     expect(maxBoardSize(p.level)).toBe(6);
   });
 });
@@ -223,7 +213,7 @@ describe('game flow', () => {
     const game = createGame('Tester');
     game.players.filter((p) => p.isAI).forEach((p) => {
       expect(p.ready).toBe(true);
-      expect(p.board.length + p.bench.length).toBeGreaterThan(0);
+      expect(p.board.filter(Boolean).length + p.bench.length).toBeGreaterThan(0);
     });
   });
 

@@ -69,9 +69,19 @@
   <div id="ab-standings" class="ab-standings"></div>
 
   <div class="ab-battle-area">
-    <div id="ab-enemy-board" class="ab-board ab-enemy-board"></div>
+    <div id="ab-enemy-board" class="ab-board ab-enemy-board">
+      <div class="ab-row-label">敌方前排</div>
+      <div class="ab-front-row" id="ab-enemy-front"></div>
+      <div class="ab-row-label">敌方后排</div>
+      <div class="ab-back-row" id="ab-enemy-back"></div>
+    </div>
     <div class="ab-vs">⚔️</div>
-    <div id="ab-player-board" class="ab-board ab-player-board"></div>
+    <div id="ab-player-board" class="ab-board ab-player-board">
+      <div class="ab-row-label">我方前排</div>
+      <div class="ab-front-row" id="ab-player-front"></div>
+      <div class="ab-row-label">我方后排</div>
+      <div class="ab-back-row" id="ab-player-back"></div>
+    </div>
   </div>
 
   <div id="ab-combat-log" class="ab-combat-log hidden"></div>

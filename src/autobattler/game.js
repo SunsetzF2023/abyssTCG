@@ -11,7 +11,7 @@
 // Pure logic, no DOM access.
 // ============================================================
 
-import { createPlayer, startRound, autoMerge, getCombatBoard, buyXP, reroll, buyPiece, moveMinion, maxBoardSize } from './shop.js';
+import { createPlayer, startRound, autoMerge, getCombatBoard, buyXP, reroll, buyPiece, placeMinion } from './shop.js';
 import { resolveBattle } from './battle.js';
 import { setSeed } from './shop.js';
 
@@ -21,32 +21,45 @@ export const MAX_ROUNDS = 30;
 // ─── AI logic (simple greedy) ──────────────────────────────────
 
 function aiShopPhase(player) {
-  // Simple AI: buy pieces that fit board, level up if affordable, reroll sometimes
   autoMerge(player);
 
-  // Try to buy pieces up to board size
+  // Buy pieces if there's room
   for (let i = player.shop.length - 1; i >= 0; i--) {
     const piece = player.shop[i];
     if (player.gold >= piece.tier) {
-      const totalPieces = player.board.length + player.bench.length;
-      if (totalPieces < maxBoardSize(player.level) + 2) {
+      const totalPieces = player.board.filter(Boolean).length + player.bench.length;
+      if (totalPieces < 12) { // 6 board + up to 6 bench reserve
         buyPiece(player, i);
         autoMerge(player);
       }
     }
   }
 
-  // Move pieces from bench to board to fill board
-  while (player.bench.length > 0 && player.board.length < maxBoardSize(player.level)) {
-    // Move strongest bench piece to board
-    player.bench.sort((a, b) => (b.attack + b.health) - (a.attack + a.health));
-    const strongest = player.bench[0];
-    if (strongest) {
-      moveMinion(player, strongest.uid, true);
-    } else {
-      break;
+  // Place tanky pieces in front row (0-2), damage in back row (3-5)
+  const fillSlots = () => {
+    // Front row: highest health first
+    const frontSlots = [0, 1, 2].filter((pos) => player.board[pos] === null);
+    if (frontSlots.length > 0) {
+      player.bench.sort((a, b) => (b.health + b.attack) - (a.health + a.attack));
+      for (const pos of frontSlots) {
+        const m = player.bench[0];
+        if (!m) break;
+        placeMinion(player, m.uid, pos);
+      }
     }
-  }
+    // Back row: highest attack first
+    const backSlots = [3, 4, 5].filter((pos) => player.board[pos] === null);
+    if (backSlots.length > 0) {
+      player.bench.sort((a, b) => b.attack - a.attack);
+      for (const pos of backSlots) {
+        const m = player.bench[0];
+        if (!m) break;
+        placeMinion(player, m.uid, pos);
+      }
+    }
+  };
+
+  fillSlots();
 
   // Level up if possible and beneficial
   if (player.level < 6 && player.gold >= 8) {
@@ -54,31 +67,22 @@ function aiShopPhase(player) {
   }
 
   // Reroll if gold is plentiful
-  if (player.gold >= 4 && player.board.length < maxBoardSize(player.level)) {
+  if (player.gold >= 4) {
     reroll(player);
-    // Buy again
     for (let i = player.shop.length - 1; i >= 0; i--) {
       const piece = player.shop[i];
       if (player.gold >= piece.tier) {
-        buyPiece(player, i);
-        autoMerge(player);
+        const total = player.board.filter(Boolean).length + player.bench.length;
+        if (total < 12) {
+          buyPiece(player, i);
+          autoMerge(player);
+        }
       }
     }
+    fillSlots();
   }
 
   autoMerge(player);
-
-  // Ensure board is full if possible
-  while (player.bench.length > 0 && player.board.length < maxBoardSize(player.level)) {
-    player.bench.sort((a, b) => (b.attack + b.health) - (a.attack + a.health));
-    const strongest = player.bench[0];
-    if (strongest) {
-      moveMinion(player, strongest.uid, true);
-    } else {
-      break;
-    }
-  }
-
   player.ready = true;
 }
 
@@ -239,7 +243,7 @@ export function getStandings(game) {
       hp: p.hp,
       gold: p.gold,
       level: p.level,
-      boardSize: p.board.length,
+      boardSize: p.board.filter(Boolean).length,
       isAI: p.isAI,
       alive: p.hp > 0,
     }))

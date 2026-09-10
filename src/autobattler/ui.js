@@ -3,17 +3,23 @@
 //
 // Renders the autobattler game state to DOM and handles
 // player interactions during the shop phase.
+//
+// Board layout: 6 fixed slots in two rows of three.
+//   front row: positions 0, 1, 2
+//   back row:  positions 3, 4, 5
+// Drag and drop is the primary way to arrange minions.
 // ============================================================
 
 import { createGame, resolveCombatPhase, getStandings } from './game.js';
 import {
-  reroll, buyPiece, moveMinion, sellPiece, buyXP, autoMerge,
-  maxBoardSize, calculateIncome, getLevelInfo,
+  reroll, buyPiece, sellPiece, buyXP, autoMerge, placeMinion, moveToBench,
+  calculateIncome, getLevelInfo,
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
 
 let game = null;
-let selectedMinion = null; // uid of selected bench/board minion for moving
+let draggedUid = null;
+let draggedSource = null; // 'bench' or board position number
 
 // ─── Screen management ────────────────────────────────────────
 
@@ -21,7 +27,8 @@ const abScreen = () => document.getElementById('screen-autobattler');
 
 export function startAutobattler() {
   game = createGame('你', Date.now());
-  selectedMinion = null;
+  draggedUid = null;
+  draggedSource = null;
   document.querySelectorAll('.screen').forEach((s) => s.classList.add('hidden'));
   abScreen().classList.remove('hidden');
   render();
@@ -35,7 +42,7 @@ export function exitAutobattler() {
   game = null;
 }
 
-// ─── Rendering ────────────────────────────────────────────────
+// ─── Rendering ───────────────────────────────────────────────
 
 function render() {
   if (!game) return;
@@ -75,32 +82,59 @@ function renderStandings() {
 }
 
 function renderBoards() {
-  const playerBoard = document.getElementById('ab-player-board');
-  const enemyBoard = document.getElementById('ab-enemy-board');
   const player = game.players[0];
+  renderBoardRow('ab-player-front', player.board, 0, 3);
+  renderBoardRow('ab-player-back', player.board, 3, 6);
+  renderBench();
 
-  playerBoard.innerHTML = player.board.map((m) => minionCard(m, true)).join('');
-  enemyBoard.innerHTML = '';
+  // Enemy board: during combat show a compact summary
+  const enemyFront = document.getElementById('ab-enemy-front');
+  const enemyBack = document.getElementById('ab-enemy-back');
+  enemyFront.innerHTML = '';
+  enemyBack.innerHTML = '';
 
-  // During combat, show the opponent's board
   if (game.phase === 'combat' && game.battles.length > 0) {
     const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
     if (myBattle && !myBattle.ghost) {
-      // Show enemy board from the battle result (pre-combat snapshot)
-      // We don't have the pre-combat enemy board stored, so show a message
-      enemyBoard.innerHTML = '<div class="ab-combat-msg">战斗已结算</div>';
+      const isAttacker = myBattle.player1 === player.name;
+      const enemyBoard = isAttacker ? myBattle.result.defenderSurvivors : myBattle.result.attackerSurvivors;
+      if (enemyBoard && enemyBoard.length > 0) {
+        renderSnapshot(enemyFront, enemyBoard.slice(0, 3));
+        renderSnapshot(enemyBack, enemyBoard.slice(3, 6));
+      } else {
+        enemyBack.innerHTML = '<div class="ab-combat-msg">战斗已结算</div>';
+      }
     }
   }
 }
 
-function minionCard(m, isPlayer) {
+function renderBoardRow(containerId, board, start, end) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  for (let i = start; i < end; i++) {
+    const m = board[i];
+    const slot = document.createElement('div');
+    slot.className = 'ab-board-slot';
+    slot.dataset.pos = i;
+    if (m) {
+      slot.innerHTML = minionCard(m, true);
+    }
+    container.appendChild(slot);
+  }
+}
+
+function renderSnapshot(container, minions) {
+  container.innerHTML = minions.map((m) => m ? minionCard(m, false) : '').join('');
+}
+
+function minionCard(m, isPlayer, isDraggable = true) {
   const race = RACE_INFO[m.race] || { icon: '', color: '#888' };
   const stars = '⭐'.repeat(m.star);
   const abilityTag = m.ability ? abilityLabel(m.ability) : '';
-  const selected = selectedMinion === m.uid ? 'selected' : '';
+  const dragAttr = isDraggable ? 'draggable="true"' : '';
   return `
-    <div class="ab-minion ${selected}" data-uid="${m.uid}" data-side="${isPlayer ? 'player' : 'enemy'}"
-         style="border-color:${race.color}">
+    <div class="ab-minion" data-uid="${m.uid}" data-side="${isPlayer ? 'player' : 'enemy'}"
+         style="border-color:${race.color}" ${dragAttr}>
       <div class="ab-minion-stars">${stars}</div>
       <div class="ab-minion-icon">${race.icon}</div>
       <div class="ab-minion-name">${m.name}</div>
@@ -159,7 +193,6 @@ function renderShop() {
     `;
   }).join('');
 
-  // Disable buttons if not shop phase
   document.getElementById('ab-reroll').disabled = !isShopPhase || player.gold < 1;
   document.getElementById('ab-levelup').disabled = !isShopPhase || player.gold < 4 || player.level >= 6;
   document.getElementById('ab-ready').disabled = !isShopPhase;
@@ -174,7 +207,7 @@ function renderPlayerInfo() {
     <span class="ab-hp">❤️ ${player.hp}</span>
     <span class="ab-level">Lv ${player.level} (${player.xp}/${levelInfo.xpNeeded === Infinity ? 'MAX' : levelInfo.xpNeeded} XP)</span>
     <span class="ab-income">下回合收入: ${income.total}💰</span>
-    <span class="ab-board-count">棋盘: ${player.board.length}/${maxBoardSize(player.level)}</span>
+    <span class="ab-board-count">棋盘: ${player.board.filter(Boolean).length}/6</span>
   `;
 }
 
@@ -207,7 +240,6 @@ function renderCombatResults() {
     }
   }
 
-  // Show all battle results
   html += '<div class="ab-all-results">';
   for (const b of game.battles) {
     if (b.ghost) continue;
@@ -237,7 +269,70 @@ function showAbGameOver(text) {
   document.getElementById('game-over-overlay').classList.remove('hidden');
 }
 
-// ─── Event handling ───────────────────────────────────────────
+// ─── Drag and drop ───────────────────────────────────────────
+
+function onDragStart(e) {
+  if (!game || game.phase !== 'shop') return;
+  const card = e.target.closest('.ab-minion');
+  if (!card) return;
+  const uid = card.dataset.uid;
+  const slot = e.target.closest('.ab-board-slot');
+  draggedUid = uid;
+  draggedSource = slot ? parseInt(slot.dataset.pos, 10) : 'bench';
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', uid);
+  card.classList.add('dragging');
+}
+
+function onDragEnd(e) {
+  const card = e.target.closest('.ab-minion');
+  if (card) card.classList.remove('dragging');
+  draggedUid = null;
+  draggedSource = null;
+}
+
+function onDragOver(e) {
+  if (!game || game.phase !== 'shop') return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const slot = e.target.closest('.ab-board-slot');
+  if (slot) slot.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  const slot = e.target.closest('.ab-board-slot');
+  if (slot) slot.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  if (!game || game.phase !== 'shop') return;
+  e.preventDefault();
+  const slot = e.target.closest('.ab-board-slot');
+  if (slot) slot.classList.remove('drag-over');
+
+  const bench = e.target.closest && e.target.closest('#ab-bench');
+  const player = game.players[0];
+
+  if (bench) {
+    // Drop on bench: move from board to bench
+    if (typeof draggedSource === 'number') {
+      if (moveToBench(player, draggedSource)) {
+        autoMerge(player);
+        render();
+      }
+    }
+    return;
+  }
+
+  if (!slot) return;
+  const targetPos = parseInt(slot.dataset.pos, 10);
+  if (draggedUid) {
+    if (placeMinion(player, draggedUid, targetPos)) {
+      autoMerge(player);
+      render();
+    }
+  }
+}
 
 export function setupAutobattlerEvents() {
   // Back button
@@ -282,72 +377,23 @@ export function setupAutobattlerEvents() {
     autoMerge(game.players[0]);
     resolveCombatPhase(game);
     render();
-    // After viewing results, start next round
-    if (game.phase === 'shop') {
-      // Already advanced — just re-render
-    }
   });
 
-  // Bench/board minion click — select for moving
-  document.getElementById('ab-bench').addEventListener('click', (e) => {
-    if (!game || game.phase !== 'shop') return;
-    const minionEl = e.target.closest('.ab-minion');
-    if (!minionEl) return;
-    const uid = minionEl.dataset.uid;
-    if (selectedMinion === uid) {
-      // Deselect and try to move to board
-      if (moveMinion(game.players[0], uid, true)) {
-        autoMerge(game.players[0]);
-      }
-      selectedMinion = null;
-    } else {
-      selectedMinion = uid;
-    }
-    render();
-  });
+  // Drag events on bench and board rows
+  const bench = document.getElementById('ab-bench');
+  bench.addEventListener('dragstart', onDragStart);
+  bench.addEventListener('dragend', onDragEnd);
+  bench.addEventListener('dragover', onDragOver);
+  bench.addEventListener('drop', onDrop);
 
-  document.getElementById('ab-player-board').addEventListener('click', (e) => {
-    if (!game || game.phase !== 'shop') return;
-    const minionEl = e.target.closest('.ab-minion');
-    if (!minionEl) {
-      // Clicked empty board area — move selected bench minion here
-      if (selectedMinion) {
-        if (moveMinion(game.players[0], selectedMinion, true)) {
-          autoMerge(game.players[0]);
-        }
-        selectedMinion = null;
-        render();
-      }
-      return;
-    }
-    const uid = minionEl.dataset.uid;
-    if (selectedMinion === null) {
-      // Select this board minion (to move back to bench)
-      selectedMinion = uid;
-      render();
-    } else if (selectedMinion === uid) {
-      // Deselect
-      selectedMinion = null;
-      render();
-    } else {
-      // Try to move selected to bench, then this one to board
-      // For simplicity: if selected is on bench, move it to board
-      const player = game.players[0];
-      const onBench = player.bench.find((m) => m.uid === selectedMinion);
-      if (onBench) {
-        if (moveMinion(player, selectedMinion, true)) {
-          autoMerge(player);
-        }
-      } else {
-        // Both on board — swap (TODO) or move selected back to bench
-        if (moveMinion(player, selectedMinion, false)) {
-          autoMerge(player);
-        }
-      }
-      selectedMinion = null;
-      render();
-    }
-  });
+  for (const id of ['ab-player-front', 'ab-player-back']) {
+    const row = document.getElementById(id);
+    row.addEventListener('dragstart', onDragStart);
+    row.addEventListener('dragend', onDragEnd);
+    row.addEventListener('dragover', onDragOver);
+    row.addEventListener('dragleave', onDragLeave);
+    row.addEventListener('drop', onDrop);
+  }
 
   // Right-click to sell
   document.getElementById('ab-bench').addEventListener('contextmenu', (e) => {
@@ -361,14 +407,20 @@ export function setupAutobattlerEvents() {
     }
   });
 
-  document.getElementById('ab-player-board').addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    if (!game || game.phase !== 'shop') return;
-    const minionEl = e.target.closest('.ab-minion');
-    if (!minionEl) return;
-    const uid = minionEl.dataset.uid;
-    if (sellPiece(game.players[0], uid)) {
-      render();
-    }
-  });
+  for (const id of ['ab-player-front', 'ab-player-back']) {
+    document.getElementById(id).addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!game || game.phase !== 'shop') return;
+      const minionEl = e.target.closest('.ab-minion');
+      if (!minionEl) return;
+      const slot = e.target.closest('.ab-board-slot');
+      if (slot) {
+        const pos = parseInt(slot.dataset.pos, 10);
+        if (moveToBench(game.players[0], pos)) {
+          autoMerge(game.players[0]);
+          render();
+        }
+      }
+    });
+  }
 }
