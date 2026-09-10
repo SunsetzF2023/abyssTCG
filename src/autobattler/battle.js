@@ -232,6 +232,13 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
             targetPos: emptyIdx,
             sourceName: dyingMinion.name,
             sourcePos: dyingPos,
+            race: summoned.race,
+            tier: summoned.tier,
+            star: summoned.star,
+            attack: summoned.attack,
+            health: summoned.health,
+            maxHealth: summoned.maxHealth,
+            shield: summoned.shield,
           });
         }
       }

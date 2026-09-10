@@ -80,6 +80,7 @@ function updateHp(card, newHp) {
   if (fill) fill.style.width = `${(newHp / maxHp) * 100}%`;
   const hpStat = card.querySelector('.ab-minion-stats .hp');
   if (hpStat) hpStat.textContent = `❤️${newHp}`;
+  if (newHp <= 0) markDead(card);
 }
 
 function cardCenter(card) {
@@ -128,17 +129,54 @@ function lungeCard(card) {
   setTimeout(() => card.classList.remove('ab-lunge'), 250);
 }
 
-function markDead(card) {
+function createShards(card) {
   if (!card) return;
-  card.classList.add('ab-dead');
-  updateHp(card, 0);
+  const rect = card.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const shardCount = 10;
+  for (let i = 0; i < shardCount; i++) {
+    const shard = document.createElement('div');
+    shard.className = 'ab-shard';
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 30 + Math.random() * 50;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist;
+    const rot = Math.random() * 360;
+    shard.style.left = `${cx}px`;
+    shard.style.top = `${cy}px`;
+    shard.style.setProperty('--tx', `${tx}px`);
+    shard.style.setProperty('--ty', `${ty}px`);
+    shard.style.setProperty('--rot', `${rot}deg`);
+    document.body.appendChild(shard);
+    setTimeout(() => shard.remove(), 700);
+  }
 }
 
-function showSummoned(side, pos, m) {
+function markDead(card) {
+  if (!card || card.classList.contains('ab-dead')) return;
+  card.classList.add('ab-dead');
+  updateHp(card, 0);
+  createShards(card);
+}
+
+function showSummoned(ev) {
+  const side = ev.side;
+  const pos = ev.targetPos;
+  const m = {
+    uid: ev.targetUid,
+    name: ev.targetName,
+    race: ev.race,
+    star: ev.star,
+    attack: ev.attack,
+    health: ev.health,
+    maxHealth: ev.maxHealth,
+    shield: ev.shield,
+    pos,
+  };
   const container = document.getElementById(getSlotId(side, pos));
   const slot = container.children[pos % 3];
   if (!slot) return;
-  m.pos = pos;
   slot.innerHTML = createCombatCard(m, side);
   const card = slot.querySelector('.ab-combat-minion');
   if (card) {
@@ -221,7 +259,7 @@ async function playDebuffEvent(ev) {
 }
 
 async function playSummonEvent(ev) {
-  showSummoned(ev.side, ev.targetPos, { uid: ev.targetUid, name: ev.targetName });
+  showSummoned(ev);
   await sleep(300);
 }
 

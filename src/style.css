@@ -139,13 +139,34 @@ body {
 
 .ab-minion.ab-hit { animation: hit-shake 0.25s; background: #5a2020; }
 .ab-minion.ab-lunge { transform: scale(1.1); transition: transform 0.15s; }
-.ab-minion.ab-dead { opacity: 0.4; filter: grayscale(100%); transform: scale(0.92); }
+.ab-minion.ab-dead {
+  animation: card-shatter 0.55s ease-out forwards;
+  pointer-events: none;
+}
 .ab-minion.ab-summon-in { animation: summon-in 0.5s ease-out; }
 
 @keyframes hit-shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-4px); }
   75% { transform: translateX(4px); }
+}
+
+@keyframes card-shatter {
+  0% { transform: scale(1); opacity: 1; filter: grayscale(0); }
+  40% { transform: scale(1.05) rotate(2deg); opacity: 0.9; filter: grayscale(60%); }
+  100% { transform: scale(0.1) rotate(-15deg); opacity: 0; filter: grayscale(100%); }
+}
+
+.ab-shard {
+  position: fixed; width: 7px; height: 7px; border-radius: 1px;
+  background: #8aa4ff; border: 1px solid #c8d4ff; pointer-events: none; z-index: 102;
+  transform: translate(-50%, -50%) scale(1) rotate(0deg);
+  animation: shard-fly 0.65s ease-out forwards;
+}
+
+@keyframes shard-fly {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.2) rotate(var(--rot)); opacity: 0; }
 }
 
 @keyframes summon-in {
