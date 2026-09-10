@@ -188,6 +188,16 @@ function applyBattlecry(player, minion, pos) {
     m.maxHealth += ab.hp || 0;
   }
 
+  function adjacentPositions(p) {
+    const adj = [];
+    const col = p % 3;
+    if (col > 0) adj.push(p - 1);
+    if (col < 2) adj.push(p + 1);
+    if (p < 3) adj.push(p + 3);
+    if (p >= 3) adj.push(p - 3);
+    return adj;
+  }
+
   switch (ab.subtype) {
     case 'buffRandomAlly': {
       if (others.length === 0) return;
@@ -196,7 +206,7 @@ function applyBattlecry(player, minion, pos) {
       break;
     }
     case 'buffAdjacentAllies': {
-      [pos - 1, pos + 1].forEach((i) => {
+      adjacentPositions(pos).forEach((i) => {
         const m = board[i];
         if (m && m.uid !== minion.uid) buff(m);
       });

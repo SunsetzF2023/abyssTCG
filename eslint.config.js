@@ -5,6 +5,7 @@ const browserGlobals = {
   document: 'readonly',
   console: 'readonly',
   setTimeout: 'readonly',
+  clearTimeout: 'readonly',
   Math: 'readonly',
 };
 

@@ -22,7 +22,8 @@ let game = null;
 let draggedUid = null;
 let draggedSource = null; // 'bench' or board position number
 let selectedShopIndex = null;
-let isDragging = false;
+let dragJustEnded = false;
+let dragResetTimer = null;
 
 // ─── Screen management ────────────────────────────────────────
 
@@ -361,7 +362,8 @@ function onDragStart(e) {
   if (!game || game.phase !== 'shop') return;
   const card = e.target.closest('.ab-minion');
   if (!card) return;
-  isDragging = true;
+  if (dragResetTimer) clearTimeout(dragResetTimer);
+  dragJustEnded = false;
   const uid = card.dataset.uid;
   const slot = e.target.closest('.ab-board-slot');
   draggedUid = uid;
@@ -376,7 +378,9 @@ function onDragEnd(e) {
   if (card) card.classList.remove('dragging');
   draggedUid = null;
   draggedSource = null;
-  setTimeout(() => { isDragging = false; }, 50);
+  if (dragResetTimer) clearTimeout(dragResetTimer);
+  dragJustEnded = true;
+  dragResetTimer = setTimeout(() => { dragJustEnded = false; }, 250);
 }
 
 function onDragOver(e) {
@@ -420,6 +424,9 @@ function onDrop(e) {
       render();
     }
   }
+  dragJustEnded = true;
+  if (dragResetTimer) clearTimeout(dragResetTimer);
+  dragResetTimer = setTimeout(() => { dragJustEnded = false; }, 250);
 }
 
 export function setupAutobattlerEvents() {
@@ -503,7 +510,7 @@ export function setupAutobattlerEvents() {
 
   // Click to view minion details
   document.getElementById('ab-bench').addEventListener('click', (e) => {
-    if (!game || game.phase !== 'shop' || isDragging) return;
+    if (!game || game.phase !== 'shop' || dragJustEnded) return;
     const minionEl = e.target.closest('.ab-minion');
     if (!minionEl) return;
     const uid = minionEl.dataset.uid;
@@ -513,7 +520,7 @@ export function setupAutobattlerEvents() {
 
   for (const id of ['ab-player-front', 'ab-player-back']) {
     document.getElementById(id).addEventListener('click', (e) => {
-      if (!game || game.phase !== 'shop' || isDragging) return;
+      if (!game || game.phase !== 'shop' || dragJustEnded) return;
       const minionEl = e.target.closest('.ab-minion');
       if (!minionEl) return;
       const slot = e.target.closest('.ab-board-slot');

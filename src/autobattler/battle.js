@@ -336,10 +336,20 @@ function buffRandom(board, ab, excludeUid) {
   target.maxHealth += ab.hp;
 }
 
+function getAdjacentPositions(idx) {
+  const adj = [];
+  const col = idx % 3;
+  if (col > 0) adj.push(idx - 1);
+  if (col < 2) adj.push(idx + 1);
+  if (idx < 3) adj.push(idx + 3);
+  if (idx >= 3) adj.push(idx - 3);
+  return adj;
+}
+
 function buffAdjacent(board, m, ab) {
   const idx = board.indexOf(m);
   if (idx === -1) return;
-  [idx - 1, idx + 1].forEach((i) => {
+  getAdjacentPositions(idx).forEach((i) => {
     const n = board[i];
     if (n && n.health > 0 && n.uid !== m.uid) {
       n.attack += ab.atk;
@@ -352,7 +362,7 @@ function buffAdjacent(board, m, ab) {
 function healAdjacent(state, side, board, m, value) {
   const idx = board.indexOf(m);
   if (idx === -1) return;
-  [idx - 1, idx + 1].forEach((i) => {
+  getAdjacentPositions(idx).forEach((i) => {
     const n = board[i];
     if (n && n.health > 0) {
       const old = n.health;
