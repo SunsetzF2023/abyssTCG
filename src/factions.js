@@ -7,7 +7,7 @@
 // art is produced (see README "美术路线图").
 // ============================================================
 
-const FACTIONS = [
+export const FACTIONS = [
   {
     id: 'human',
     name: '人类 · 秩序军团',
@@ -50,6 +50,6 @@ const FACTIONS = [
   },
 ];
 
-function getFaction(id) {
+export function getFaction(id) {
   return FACTIONS.find(f => f.id === id);
 }

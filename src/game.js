@@ -9,6 +9,10 @@
 //      attacker, then click an enemy minion or the enemy hero.
 // ============================================================
 
+import { FACTIONS, getFaction } from './factions.js';
+import { getCard } from './cards.js';
+import { newGame, playCard, attack, endTurn, checkWin, requiresMinionTarget } from './engine.js';
+
 let game = null;
 let selectedHandIndex = null; // index into player's hand, while awaiting a target
 let selectedAttackerUid = null;
@@ -20,10 +24,6 @@ const screens = {
 
 function showScreen(name) {
   Object.entries(screens).forEach(([k, el]) => el.classList.toggle('hidden', k !== name));
-}
-
-function cardArtStyle(card) {
-  return card && card.art ? `background-image:url('assets/cards/${card.art}')` : '';
 }
 
 // ─── Menu screen: faction select ───

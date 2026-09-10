@@ -12,7 +12,7 @@
 //   assets, otherwise omitted (UI falls back to the faction icon).
 // ============================================================
 
-const CARDS = [
+export const CARDS = [
   // ───────────────────────── 人类 · 秩序军团 ─────────────────────────
   { id: 'h_recruit', faction: 'human', type: 'minion', name: '见习卫兵', cost: 1, attack: 1, health: 3 },
   { id: 'h_pikeman', faction: 'human', type: 'minion', name: '长枪卫士', cost: 2, attack: 2, health: 3 },
@@ -169,10 +169,10 @@ const CARDS = [
   },
 ];
 
-function cardsForFaction(factionId) {
+export function cardsForFaction(factionId) {
   return CARDS.filter(c => c.faction === factionId);
 }
 
-function getCard(id) {
+export function getCard(id) {
   return CARDS.find(c => c.id === id);
 }

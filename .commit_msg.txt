@@ -1,0 +1,33 @@
+Restructure project onto Vite + tests + CI/CD
+
+File structure:
+- Move all JS/CSS into src/ as ES modules (import/export instead of
+  global <script> tags), with src/main.js as the single entry point.
+- Move card art into public/ so Vite copies it verbatim into dist/.
+- index.html now loads a single `<script type="module" src="/src/main.js">`.
+
+Stability:
+- Add a Vitest suite (tests/engine.test.js): card data sanity checks,
+  requiresMinionTarget behavior, and full-game simulations (30 random
+  matchups) asserting every game reaches a winner within a turn cap —
+  guards against the crash and stuck-turn bugs fixed earlier today.
+- Add ESLint (flat config) and fix the one warning it found (a dead
+  unused function in game.js).
+- .github/workflows/ci.yml runs lint + test + build on every push/PR.
+- .github/workflows/deploy.yml builds and deploys dist/ to GitHub
+  Pages via the official actions/deploy-pages action, replacing the
+  previous "serve raw files from main" legacy Pages setup. Switched
+  the repo's Pages build_type to `workflow` accordingly.
+
+Security / code quality:
+- .gitignore excludes node_modules/ and dist/ from version control.
+- Pinned devDependency versions (vite, vitest, eslint, @eslint/js) —
+  `npm audit` reports 0 vulnerabilities.
+- .editorconfig for consistent indentation/line endings across editors.
+
+README updated to document the new dev workflow (npm install / dev /
+test / lint / build) and file layout.
+
+Generated with [Devin](https://devin.ai)
+
+Co-Authored-By: Devin <158243242+devin-ai-integration[bot]@users.noreply.github.com>

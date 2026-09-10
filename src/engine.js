@@ -1,7 +1,7 @@
 // ============================================================
 // Game engine — AbyssTCG
 //
-// Pure logic, no DOM access. js/game.js renders GameState and
+// Pure logic, no DOM access. src/game.js renders GameState and
 // calls into these functions in response to clicks.
 //
 // MVP scope (deliberately excluded for now, see README roadmap):
@@ -10,6 +10,8 @@
 //   - deck building UI (decks are auto-built: 2 copies of every
 //     card owned by the chosen faction, shuffled)
 // ============================================================
+
+import { cardsForFaction, getCard } from './cards.js';
 
 const BOARD_LIMIT = 7;
 const HAND_LIMIT = 10;
@@ -82,7 +84,7 @@ function otherSide(side) {
   return side === 'player' ? 'ai' : 'player';
 }
 
-function newGame(playerFactionId, aiFactionId) {
+export function newGame(playerFactionId, aiFactionId) {
   const game = {
     turnCount: 0,
     active: 'player',
@@ -98,7 +100,7 @@ function newGame(playerFactionId, aiFactionId) {
   return game;
 }
 
-function startTurn(game, side) {
+export function startTurn(game, side) {
   const p = game[side];
   game.active = side;
   game.turnCount += 1;
@@ -122,7 +124,7 @@ function revertTempBuffs(side_player_state) {
   side_player_state.board = side_player_state.board.filter(m => m.health > 0);
 }
 
-function endTurn(game) {
+export function endTurn(game) {
   if (game.over) return;
   const side = game.active;
   revertTempBuffs(game[side]);
@@ -131,7 +133,7 @@ function endTurn(game) {
   if (next === 'ai') runAiTurn(game);
 }
 
-function checkWin(game) {
+export function checkWin(game) {
   if (game.player.heroHp <= 0 || game.ai.heroHp <= 0) {
     game.over = true;
     if (game.player.heroHp <= 0 && game.ai.heroHp <= 0) game.winner = 'draw';
@@ -140,7 +142,7 @@ function checkWin(game) {
   }
 }
 
-function requiresMinionTarget(card) {
+export function requiresMinionTarget(card) {
   if (!card.effect) return false; // minions have no effect object
   const steps = card.effect.type === 'composite' ? card.effect.steps : [card.effect];
   return steps.some(s => ['damageMinion', 'buffMinionTemp', 'damageMinionThenBuffRandomIfDied', 'damageMinionThenDrawIfDied'].includes(s.type));
@@ -263,7 +265,7 @@ function resolveEffect(game, effect, casterSide, targetUid) {
 }
 
 /** Returns null on success, or an error message string. */
-function playCard(game, side, handIndex, targetUid) {
+export function playCard(game, side, handIndex, targetUid) {
   if (game.over) return '对局已结束';
   if (game.active !== side) return '还没轮到你';
   const p = game[side];
@@ -299,7 +301,7 @@ function playCard(game, side, handIndex, targetUid) {
 }
 
 /** Returns null on success, or an error message string. */
-function attack(game, side, attackerUid, targetUid) {
+export function attack(game, side, attackerUid, targetUid) {
   if (game.over) return '对局已结束';
   if (game.active !== side) return '还没轮到你';
   const attackerRef = game[side].board.find(m => m.uid === attackerUid);
@@ -345,7 +347,7 @@ function pickAiTarget(game, card, casterSide) {
   return pool.reduce((best, m) => (!best || m.health < best.health) ? m : best, null).uid;
 }
 
-function runAiTurn(game) {
+export function runAiTurn(game) {
   const ai = game.ai;
   // Play the biggest affordable minion repeatedly.
   let playedSomething = true;
