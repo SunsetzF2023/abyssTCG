@@ -21,6 +21,7 @@ import { playBattleAnimation } from './animator.js';
 let game = null;
 let draggedUid = null;
 let draggedSource = null; // 'bench' or board position number
+let selectedShopIndex = null;
 
 // ─── Screen management ────────────────────────────────────────
 
@@ -211,6 +212,39 @@ function renderShop() {
   document.getElementById('ab-ready').disabled = !isShopPhase;
 }
 
+function openShopDetail(index) {
+  if (!game || game.phase !== 'shop') return;
+  const piece = game.players[0].shop[index];
+  if (!piece) return;
+  selectedShopIndex = index;
+
+  const race = RACE_INFO[piece.race] || { icon: '', color: '#888' };
+  const canAfford = game.players[0].gold >= piece.tier;
+  const content = document.getElementById('shop-detail-content');
+  const buyBtn = document.getElementById('shop-detail-buy');
+
+  content.innerHTML = `
+    <div class="detail-icon" style="color:${race.color}">${race.icon}</div>
+    <div class="detail-name" style="color:${race.color}">${piece.name}</div>
+    <div class="detail-race">${race.name} · ${'⭐'.repeat(piece.tier)} · ${piece.attack}⚔️/${piece.health}❤️</div>
+    <div class="detail-stats">
+      <span class="atk">⚔️ ${piece.attack}</span>
+      <span class="hp">❤️ ${piece.health}</span>
+    </div>
+    ${piece.ability ? `<div class="detail-ability"><strong>${abilityLabel(piece.ability)}</strong><br>${piece.description || ''}</div>` : '<div class="detail-ability">无特殊技能</div>'}
+    <div class="detail-flavor">"${piece.flavor || ''}"</div>
+  `;
+
+  buyBtn.textContent = `购买 (${piece.tier}💰)`;
+  buyBtn.disabled = !canAfford;
+  document.getElementById('shop-detail-modal').classList.remove('hidden');
+}
+
+function closeShopDetail() {
+  selectedShopIndex = null;
+  document.getElementById('shop-detail-modal').classList.add('hidden');
+}
+
 function renderPlayerInfo() {
   const player = game.players[0];
   const income = calculateIncome(player);
@@ -378,14 +412,25 @@ export function setupAutobattlerEvents() {
     document.getElementById('screen-menu').classList.remove('hidden');
   });
 
-  // Shop piece click — buy
+  // Shop piece click — open detail modal
   document.getElementById('ab-shop').addEventListener('click', (e) => {
     if (!game || game.phase !== 'shop') return;
     const pieceEl = e.target.closest('.ab-shop-piece');
     if (!pieceEl) return;
     const index = parseInt(pieceEl.dataset.index, 10);
-    if (buyPiece(game.players[0], index)) {
+    openShopDetail(index);
+  });
+
+  // Modal close
+  document.getElementById('shop-detail-close').addEventListener('click', closeShopDetail);
+  document.querySelector('#shop-detail-modal .modal-backdrop').addEventListener('click', closeShopDetail);
+
+  // Modal buy button
+  document.getElementById('shop-detail-buy').addEventListener('click', () => {
+    if (selectedShopIndex === null || !game || game.phase !== 'shop') return;
+    if (buyPiece(game.players[0], selectedShopIndex)) {
       autoMerge(game.players[0]);
+      closeShopDetail();
       render();
     }
   });

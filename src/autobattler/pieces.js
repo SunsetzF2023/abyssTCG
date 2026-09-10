@@ -322,6 +322,148 @@ export function getPiece(id) {
   return PIECES.find((p) => p.id === id);
 }
 
+export function describeAbility(ability) {
+  if (!ability) return '无特殊技能。';
+  switch (ability.type) {
+    case 'taunt':
+      return '嘲讽:优先成为敌方的攻击目标。';
+    case 'shield':
+      return '护盾:战斗开始时获得1层护盾,可抵挡1次伤害。';
+    case 'cleave':
+      return '顺劈:攻击时对目标及左右相邻单位造成伤害。';
+    case 'pierce':
+      return '贯穿:攻击时额外伤害目标后方的单位。';
+    case 'poison':
+      return '剧毒:攻击时无视血量直接击杀目标。';
+    case 'enrage':
+      return `激怒:生命值首次低于一半时,攻击+${ability.atk || 0}。`;
+    case 'grow':
+      return `成长:每个回合开始时攻击+${ability.atk || 0},生命+${ability.hp || 0}。`;
+    case 'firstStrike':
+      return '先手:战斗开始时先发动一次攻击。';
+    case 'frenzy':
+      return `连击:每个回合攻击 ${ability.count || 1} 次。`;
+    case 'deathrattle':
+      switch (ability.subtype) {
+        case 'summon':
+          return `亡语:死亡时召唤 ${ability.count || 1} 个 ${ability.token || '衍生物'}。`;
+        case 'damageRandomEnemy':
+          return `亡语:死亡时对一名随机敌方造成 ${ability.value || 0} 点伤害。`;
+        case 'damageAllEnemies':
+          return `亡语:死亡时对所有敌方造成 ${ability.value || 0} 点伤害。`;
+        case 'buffAllies':
+          return `亡语:死亡时使所有友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        case 'weakenAllEnemies':
+          return `亡语:死亡时使所有敌方${ability.atk || 0}攻击、${ability.hp || 0}生命。`;
+        default:
+          return '亡语:死亡时触发特殊效果。';
+      }
+    case 'onKill':
+      switch (ability.subtype) {
+        case 'buffSelf':
+          return `击杀:击杀敌人后自身+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        case 'gainGold':
+          return '击杀:击杀敌人后自身+1/+1(战斗外金币收益不体现)。';
+        case 'buffAllies':
+          return `击杀:击杀敌人后所有友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        default:
+          return '击杀:击杀敌人后触发效果。';
+      }
+    case 'meditate':
+      switch (ability.subtype) {
+        case 'healSelf':
+          return `冥想:每个回合开始时恢复自身 ${ability.value || 0} 点生命。`;
+        case 'healAdjacentAllies':
+          return `冥想:每个回合开始时为相邻友方恢复 ${ability.value || 0} 点生命。`;
+        case 'healAllAllies':
+          return `冥想:每个回合开始时为所有友方恢复 ${ability.value || 0} 点生命。`;
+        case 'damageRandomEnemy':
+          return `冥想:每个回合开始时对一名随机敌方造成 ${ability.value || 0} 点伤害。`;
+        case 'buffAllies':
+          return `冥想:每个回合开始时使所有友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        default:
+          return '冥想:每个回合开始时触发效果。';
+      }
+    case 'battlecry':
+      switch (ability.subtype) {
+        case 'buffRandomAlly':
+          return `入场:使一名随机友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        case 'buffAdjacentAllies':
+          return `入场:使相邻友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        case 'buffAlliesIfThree':
+          return `入场:若友方数量≥3,使所有友方+${ability.atk || 0}攻击、+${ability.hp || 0}生命。`;
+        default:
+          return '入场:上阵时触发效果。';
+      }
+    default:
+      return ability.type;
+  }
+}
+
+const FLAVOR_TEMPLATES = [
+  '{name}最大的梦想是升到六星。',
+  '{name}最讨厌排队,但它很乐意插队到前排。',
+  '{name}的座右铭:能动手就别吵吵。',
+  '{name}曾是一名会计,后来转行了。',
+  '{name}害怕孤独,所以总爱和队友贴贴。',
+  '{name}宣称自己吃过龙,虽然没人信。',
+  '{name}的弱点是甜食,但它从不吃亏。',
+  '{name}总觉得自己才是主角。',
+  '{name}的座右铭:少说话,多输出。',
+  '{name}其实是个隐藏的美食家。',
+  '{name}的梦想是退休开咖啡馆。',
+  '{name}坚信颜值即战力。',
+  '{name}曾经赢过一场棋局,那场棋局没有对手。',
+  '{name}最怕下雨天,因为会生锈。',
+  '{name}的口头禅:再升一星!',
+  '{name}总把"世界和平"挂在嘴边。',
+  '{name}最大的遗憾是没能长出更多牙齿。',
+  '{name}最大的爱好是收集牙齿。',
+  '{name}的梦想是成为卡牌原画。',
+  '{name}一直觉得棋盘太小,施展不开。',
+  '{name}曾是山林乐队的主唱。',
+  '{name}相信明天会更好,除非遇到剧毒。',
+  '{name}最讨厌别人说它小。',
+  '{name}的梦想是开一家钢铁厂。',
+  '{name}最喜欢的颜色是星空紫。',
+  '{name}总怀疑敌人在作弊。',
+  '{name}的愿望是世界和平与三星自己。',
+  '{name}的座右铭:活着就是为了输出。',
+  '{name}最大的爱好是晒太阳,可惜晒不到。',
+  '{name}的梦想是成为传说。',
+  '{name}经常说:"你打不到我~"',
+  '{name}最讨厌被当作充电宝。',
+  '{name}总觉得自己的模型应该更大。',
+  '{name}的梦想是拥有一双翅膀。',
+  '{name}最大的敌人是系统随机数。',
+  '{name}的座右铭:越战越勇。',
+  '{name}一直想学会隐身。',
+  '{name}的梦想是成为阵容核心。',
+  '{name}最享受的就是秒杀时刻。',
+  '{name}最大的烦恼是名字太中二。',
+  '{name}坚信自己是天选之子。',
+  '{name}最想和设计师聊聊数值。',
+  '{name}的口头禅:我三星啦!',
+  '{name}的梦想是看到决赛圈。',
+  '{name}最怕的就是天胡对手。',
+  '{name}总觉得自己应该再多一个技能。',
+  '{name}最大的爱好是看别人打架。',
+  '{name}的座右铭:低调,但输出拉满。',
+  '{name}一直想换个更酷炫的名字。',
+  '{name}的梦想是被玩家选中。',
+];
+
+function flavorFor(piece) {
+  const idx = piece.name.length % FLAVOR_TEMPLATES.length;
+  return FLAVOR_TEMPLATES[idx].replace('{name}', piece.name);
+}
+
+// Enrich all pieces with generated description and flavor.
+[...PIECES, ...Object.values(TOKEN_PIECES)].forEach((p) => {
+  p.description = describeAbility(p.ability);
+  p.flavor = flavorFor(p);
+});
+
 export function piecesByTier(tier) {
   return PIECES.filter((p) => p.tier === tier);
 }

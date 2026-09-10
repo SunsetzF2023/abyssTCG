@@ -272,7 +272,7 @@ body {
   position: relative; transition: transform 0.1s;
 }
 .ab-shop-piece:hover { transform: translateY(-2px); }
-.ab-shop-piece.unaffordable { opacity: 0.45; cursor: not-allowed; }
+.ab-shop-piece.unaffordable { opacity: 0.45; }
 .ab-shop-cost {
   position: absolute; top: -6px; right: -6px; background: #e0a040;
   color: #000; font-size: 0.7rem; font-weight: 700; border-radius: 50%;
@@ -318,3 +318,29 @@ body {
 .ab-survivors { color: #aab0c6; font-size: 0.8rem; margin-bottom: 8px; }
 .ab-all-results { border-top: 1px solid #2a2f45; padding-top: 8px; }
 .ab-mini-result { font-size: 0.75rem; color: #9aa0b4; padding: 2px 0; }
+
+/* ─── Shop detail modal ─── */
+.modal { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal.hidden { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.75); }
+.modal-box {
+  position: relative; background: #181b2a; border: 2px solid #3a3f55; border-radius: 14px;
+  padding: 24px; width: 340px; max-width: 90vw; text-align: center;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.modal-close { position: absolute; top: 10px; right: 14px; background: none; border: none; color: #aab0c6; font-size: 1.6rem; cursor: pointer; }
+.modal-content { margin-bottom: 16px; }
+.detail-icon { font-size: 4.5rem; margin-bottom: 10px; }
+.detail-name { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.detail-race { font-size: 0.8rem; color: #9aa0b4; margin-bottom: 12px; }
+.detail-stats { font-size: 1rem; display: flex; justify-content: center; gap: 18px; margin-bottom: 14px; }
+.detail-stats .atk { color: #ff8a6a; }
+.detail-stats .hp { color: #6affa0; }
+.detail-ability {
+  background: #252a40; border-radius: 8px; padding: 10px 12px; font-size: 0.9rem; color: #d8d8ff;
+  margin-bottom: 12px; line-height: 1.4; text-align: left;
+}
+.detail-flavor {
+  font-size: 0.8rem; color: #aab0c6; font-style: italic; line-height: 1.4; margin-bottom: 6px;
+}
+#shop-detail-buy { width: 100%; }
