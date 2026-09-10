@@ -703,7 +703,7 @@ export function resolveBattle(attackerBoard, defenderBoard) {
   const defenderSurvivors = state.defender.board.filter(Boolean);
 
   if (winner !== 'draw') {
-    damageDealt = survivors.reduce((sum, m) => sum + m.tier * m.star, 0);
+    damageDealt = survivors.reduce((sum, m) => sum + m.star, 0);
   }
 
   return {

@@ -129,6 +129,11 @@ export function pairPlayers(players) {
   return pairs;
 }
 
+function findMinion(player, uid) {
+  const all = [...player.board.filter(Boolean), ...player.bench];
+  return all.find((m) => m.uid === uid);
+}
+
 // ─── Resolve combat phase ──────────────────────────────────────
 
 export function resolveCombatPhase(game) {
@@ -154,6 +159,18 @@ export function resolveCombatPhase(game) {
 
     const result = resolveBattle(board1, board2);
 
+    // Grow-buff changes from combat are permanent (Rule C)
+    for (const ev of result.log) {
+      if (ev.type !== 'buff' || ev.subtype !== 'grow') continue;
+      const owner = ev.side === 'attacker' ? p1 : p2;
+      const minion = findMinion(owner, ev.targetUid);
+      if (minion) {
+        minion.attack += ev.atk || 0;
+        minion.health += ev.hp || 0;
+        minion.maxHealth += ev.hp || 0;
+      }
+    }
+
     game.battles.push({
       player1: p1.name,
       player2: p2.name,
@@ -161,7 +178,7 @@ export function resolveCombatPhase(game) {
       ghost: false,
     });
 
-    // Apply damage to the loser
+    // Apply damage to the loser; damage = sum of surviving star + winner shop level
     let loser, winner;
     if (result.winner === 'attacker') {
       winner = p1;
@@ -174,6 +191,7 @@ export function resolveCombatPhase(game) {
       continue;
     }
 
+    result.damageDealt += winner.level;
     loser.hp -= result.damageDealt;
     loser.streak = 0;
     winner.streak += 1;

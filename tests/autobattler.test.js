@@ -153,22 +153,21 @@ describe('resolveBattle — abilities', () => {
 });
 
 describe('resolveBattle — damage settlement', () => {
-  it('winner damage = sum of surviving minions (tier * star)', () => {
+  it('winner damage = sum of surviving minion stars', () => {
     const attacker = makeBoard({ pieceId: 't3_sentinel', star: 1 }); // 3/6
     const defender = makeBoard({ pieceId: 't1_wanderer', star: 1 }); // 1/2
     const result = resolveBattle(attacker, defender);
     if (result.winner === 'attacker' && result.survivors.length === 1) {
-      const s = result.survivors[0];
-      expect(result.damageDealt).toBe(s.tier * s.star);
+      expect(result.damageDealt).toBe(result.survivors.reduce((sum, m) => sum + m.star, 0));
     }
   });
 
-  it('star-2 survivors deal double tier damage', () => {
+  it('star-2 survivors deal double star damage', () => {
     const attacker = makeBoard({ pieceId: 't1_shieldbearer', star: 2 }); // 2/8
     const defender = makeBoard({ pieceId: 't1_wanderer', star: 1 });     // 1/2
     const result = resolveBattle(attacker, defender);
     if (result.winner === 'attacker' && result.survivors.length === 1) {
-      expect(result.damageDealt).toBe(2); // tier 1 * star 2
+      expect(result.damageDealt).toBe(2); // star 2
     }
   });
 });
