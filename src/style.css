@@ -193,14 +193,23 @@ body {
 }
 
 .ab-float-text {
-  position: fixed; font-weight: 700; font-size: 1rem; pointer-events: none;
+  position: fixed; font-weight: 900; font-size: 1.4rem; pointer-events: none;
   animation: float-up 0.8s ease-out forwards;
   z-index: 101;
 }
-.ab-dmg { color: #ff6a6a; }
-.ab-heal { color: #6affa0; }
+.ab-dmg { color: #ff4d4d; text-shadow: 0 0 4px #ff4d4d; }
+.ab-heal { color: #6affa0; text-shadow: 0 0 4px #6affa0; }
 .ab-buff { color: #6b7fff; }
 .ab-debuff { color: #ff9a5a; }
+.ab-buff-gain { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
+.ab-debuff-lose { color: #e0e0ff; text-shadow: 0 0 4px #e0e0ff; }
+
+.ab-leap-clone {
+  position: fixed;
+  pointer-events: none;
+  z-index: 103;
+  box-shadow: 0 0 16px #8a9eff;
+}
 
 @keyframes float-up {
   0% { transform: translateY(0); opacity: 1; }
@@ -269,8 +278,12 @@ body {
   border-radius: 4px; padding: 1px 4px; display: inline-block; margin: 2px 0;
 }
 .ab-minion-stats { font-size: 0.75rem; display: flex; justify-content: space-around; }
-.ab-minion-stats .atk { color: #ff8a6a; }
-.ab-minion-stats .hp { color: #6affa0; }
+.ab-minion-stats .atk { color: #ff8a6a; transition: color 0.2s, transform 0.2s; }
+.ab-minion-stats .hp { color: #6affa0; transition: color 0.2s, transform 0.2s; }
+.ab-minion-stats .atk.ab-stat-buffed,
+.ab-minion-stats .hp.ab-stat-buffed { color: #ffd700; transform: scale(1.35); text-shadow: 0 0 6px #ffd700; }
+.ab-minion-stats .atk.ab-stat-debuffed,
+.ab-minion-stats .hp.ab-stat-debuffed { color: #ffffff; transform: scale(1.25); text-shadow: 0 0 4px #ffffff; }
 .ab-shield { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; }
 
 .ab-shop-area {

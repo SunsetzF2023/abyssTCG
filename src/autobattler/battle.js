@@ -45,7 +45,9 @@ function effAttack(m) {
   return m.enrageActive ? m.attack + m.ability.atk : m.attack;
 }
 
-/** Picks a target: front-row Taunt > front-row > back-row Taunt > back-row. */
+/** Picks a target: front-row leftmost > front-row taunts > back-row leftmost > back-row taunts.
+ *  Within a row the first living minion in slot order (left to right) is picked,
+ *  so attack order is fully deterministic. */
 function pickTarget(board) {
   const alive = (m) => m && m.health > 0;
   const front = board.slice(0, 3).filter(alive);
@@ -55,7 +57,9 @@ function pickTarget(board) {
     if (pool.length === 0) return null;
     const taunts = pool.filter((m) => m.ability && m.ability.type === 'taunt');
     const candidates = taunts.length > 0 ? taunts : pool;
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    // Return the leftmost candidate by original board position.
+    candidates.sort((a, b) => board.indexOf(a) - board.indexOf(b));
+    return candidates[0];
   }
 
   return pick(front) || pick(back);
@@ -93,13 +97,13 @@ function triggerBattlecry(state, m, ownerSide) {
   const mPos = posOf(state[ownerSide].board, m);
   switch (ab.subtype) {
     case 'buffRandomAlly':
-      buffRandom(friendly, ab, m.uid);
+      buffRandom(state, ownerSide, m, ab);
       break;
     case 'buffAdjacentAllies':
-      buffAdjacent(state[ownerSide].board, m, ab);
+      buffAdjacent(state, ownerSide, m, ab);
       break;
     case 'buffAlliesIfThree':
-      if (friendly.length >= 3) buffAll(friendly, ab, m.uid);
+      if (friendly.length >= 3) buffAll(state, ownerSide, m, ab);
       break;
   }
   logEvent(state, {
@@ -173,7 +177,7 @@ function triggerMeditate(state, m, ownerSide) {
       }
       break;
     case 'buffAllies':
-      buffAll(friendly, ab, m.uid);
+      buffAll(state, ownerSide, m, ab);
       break;
   }
 }
@@ -195,7 +199,7 @@ function triggerOnKill(state, killer, ownerSide) {
       killer.maxHealth += 1;
       break;
     case 'buffAllies':
-      buffAll(friendly, ab, killer.uid);
+      buffAll(state, ownerSide, killer, ab);
       break;
   }
   logEvent(state, {
@@ -324,23 +328,45 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
   }
 }
 
-function buffAll(board, ab, excludeUid) {
-  board.forEach((m) => {
-    if (m && m.health > 0 && m.uid !== excludeUid) {
-      m.attack += ab.atk;
-      m.health += ab.hp;
-      m.maxHealth += ab.hp;
+function buffAll(state, side, m, ab) {
+  const board = state[side].board;
+  board.forEach((n) => {
+    if (n && n.health > 0 && n.uid !== m.uid) {
+      n.attack += ab.atk;
+      n.health += ab.hp;
+      n.maxHealth += ab.hp;
+      logEvent(state, {
+        type: 'buff',
+        side,
+        targetUid: n.uid,
+        targetName: n.name,
+        targetPos: posOf(board, n),
+        atk: ab.atk,
+        hp: ab.hp,
+        subtype: 'battlecry',
+      });
     }
   });
 }
 
-function buffRandom(board, ab, excludeUid) {
-  const alive = board.filter((m) => m && m.health > 0 && m.uid !== excludeUid);
+function buffRandom(state, side, m, ab) {
+  const board = state[side].board;
+  const alive = board.filter((n) => n && n.health > 0 && n.uid !== m.uid);
   if (alive.length === 0) return;
   const target = alive[Math.floor(Math.random() * alive.length)];
   target.attack += ab.atk;
   target.health += ab.hp;
   target.maxHealth += ab.hp;
+  logEvent(state, {
+    type: 'buff',
+    side,
+    targetUid: target.uid,
+    targetName: target.name,
+    targetPos: posOf(board, target),
+    atk: ab.atk,
+    hp: ab.hp,
+    subtype: 'battlecry',
+  });
 }
 
 function getAdjacentPositions(idx) {
@@ -353,7 +379,8 @@ function getAdjacentPositions(idx) {
   return adj;
 }
 
-function buffAdjacent(board, m, ab) {
+function buffAdjacent(state, side, m, ab) {
+  const board = state[side].board;
   const idx = board.indexOf(m);
   if (idx === -1) return;
   getAdjacentPositions(idx).forEach((i) => {
@@ -362,6 +389,16 @@ function buffAdjacent(board, m, ab) {
       n.attack += ab.atk;
       n.health += ab.hp;
       n.maxHealth += ab.hp;
+      logEvent(state, {
+        type: 'buff',
+        side,
+        targetUid: n.uid,
+        targetName: n.name,
+        targetPos: i,
+        atk: ab.atk,
+        hp: ab.hp,
+        subtype: 'battlecry',
+      });
     }
   });
 }

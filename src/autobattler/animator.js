@@ -71,17 +71,26 @@ function getCard(side, uid) {
   return document.querySelector(`.ab-combat-minion[data-side="${side}"][data-uid="${uid}"]`);
 }
 
-function updateHp(card, newHp) {
+function updateStats(card, { attack, health, maxHealth } = {}) {
   if (!card) return;
-  const maxHp = parseInt(card.dataset.maxHp, 10);
-  newHp = Math.max(0, Math.min(newHp, maxHp));
-  card.dataset.hp = newHp;
-  const fill = card.querySelector('.ab-hp-fill');
-  if (fill) fill.style.width = `${(newHp / maxHp) * 100}%`;
-  const hpStat = card.querySelector('.ab-minion-stats .hp');
-  if (hpStat) hpStat.textContent = `❤️${newHp}`;
-  if (newHp <= 0) markDead(card);
+  if (maxHealth !== undefined) card.dataset.maxHp = maxHealth;
+  if (attack !== undefined) {
+    const atkEl = card.querySelector('.ab-minion-stats .atk');
+    if (atkEl) atkEl.textContent = `⚔️${attack}`;
+  }
+  if (health !== undefined) {
+    const maxHp = parseInt(card.dataset.maxHp, 10);
+    health = Math.max(0, Math.min(health, maxHp));
+    card.dataset.hp = health;
+    const fill = card.querySelector('.ab-hp-fill');
+    if (fill) fill.style.width = `${(health / maxHp) * 100}%`;
+    const hpEl = card.querySelector('.ab-minion-stats .hp');
+    if (hpEl) hpEl.textContent = `❤️${health}`;
+    if (health <= 0) markDead(card);
+  }
 }
+
+function updateHp(card, newHp) { updateStats(card, { health: newHp }); }
 
 function cardCenter(card) {
   const rect = card.getBoundingClientRect();
@@ -127,6 +136,30 @@ function lungeCard(card) {
   if (!card) return;
   card.classList.add('ab-lunge');
   setTimeout(() => card.classList.remove('ab-lunge'), 250);
+}
+
+function leapCard(attacker, target) {
+  if (!attacker || !target) return;
+  const r1 = attacker.getBoundingClientRect();
+  const r2 = target.getBoundingClientRect();
+  const clone = attacker.cloneNode(true);
+  clone.classList.add('ab-leap-clone', 'ab-combat-minion');
+  clone.style.position = 'fixed';
+  clone.style.left = `${r1.left}px`;
+  clone.style.top = `${r1.top}px`;
+  clone.style.width = `${r1.width}px`;
+  clone.style.height = `${r1.height}px`;
+  clone.style.margin = '0';
+  document.body.appendChild(clone);
+
+  const dx = r2.left + r2.width / 2 - (r1.left + r1.width / 2);
+  const dy = r2.top + r2.height / 2 - (r1.top + r1.height / 2);
+  const anim = clone.animate([
+    { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+    { transform: `translate(${dx}px, ${dy}px) scale(1.15) rotate(6deg)`, opacity: 1, offset: 0.45 },
+    { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+  ], { duration: 320, easing: 'ease-in-out' });
+  anim.onfinish = () => clone.remove();
 }
 
 function createShards(card) {
@@ -193,12 +226,16 @@ async function playAttackEvent(ev) {
   const attacker = getCard(ev.side, ev.attackerUid);
   const target = getCard(otherSide(ev.side), ev.targetUid);
 
-  if (attacker) lungeCard(attacker);
   if (attacker && target) {
-    const beamClass = ev.isPoison ? 'ab-poison-beam' : '';
-    fireBeam(attacker, target, beamClass);
+    if (ev.isPoison) {
+      fireBeam(attacker, target, 'ab-poison-beam');
+    } else {
+      leapCard(attacker, target);
+    }
+  } else if (attacker) {
+    lungeCard(attacker);
   }
-  await sleep(150);
+  await sleep(160);
 
   if (target) {
     flashCard(target, 'ab-hit');
@@ -206,7 +243,7 @@ async function playAttackEvent(ev) {
     const newHp = parseInt(target.dataset.hp, 10) - ev.damage;
     updateHp(target, newHp);
   }
-  await sleep(BEAM_DURATION_MS - 150);
+  await sleep(180);
 }
 
 async function playSplashEvent(ev) {
@@ -244,18 +281,82 @@ async function playHealEvent(ev) {
 
 async function playBuffEvent(ev) {
   const target = getCard(ev.side, ev.targetUid);
-  if (target) {
-    showFloatingText(target, `+${ev.atk || 0}⚔️ +${ev.hp || 0}❤️`, 'ab-buff');
-    await sleep(300);
+  if (!target) return;
+
+  const oldAtk = parseInt(target.querySelector('.ab-minion-stats .atk').textContent.replace('⚔️', ''), 10);
+  const oldHp = parseInt(target.querySelector('.ab-minion-stats .hp').textContent.replace('❤️', ''), 10);
+  const oldMaxHp = parseInt(target.dataset.maxHp, 10);
+
+  const newAtk = oldAtk + (ev.atk || 0);
+  const newHp = oldHp + (ev.hp || 0);
+  const newMaxHp = oldMaxHp + (ev.hp || 0);
+
+  const textParts = [];
+  if (ev.atk) textParts.push(`${ev.atk > 0 ? '+' : ''}${ev.atk}⚔️`);
+  if (ev.hp) textParts.push(`${ev.hp > 0 ? '+' : ''}${ev.hp}❤️`);
+  if (textParts.length > 0) {
+    showFloatingText(target, textParts.join(' '), 'ab-buff-gain');
   }
+
+  updateStats(target, { attack: newAtk, health: newHp, maxHealth: newMaxHp });
+
+  const atkEl = target.querySelector('.ab-minion-stats .atk');
+  const hpEl = target.querySelector('.ab-minion-stats .hp');
+  if (ev.atk) {
+    atkEl.classList.add('ab-stat-buffed');
+    setTimeout(() => atkEl.classList.remove('ab-stat-buffed'), 700);
+  }
+  if (ev.hp) {
+    hpEl.classList.add('ab-stat-buffed');
+    setTimeout(() => hpEl.classList.remove('ab-stat-buffed'), 700);
+  }
+  await sleep(300);
 }
 
 async function playDebuffEvent(ev) {
   const target = getCard(ev.side, ev.targetUid);
-  if (target) {
-    showFloatingText(target, `${ev.atk || 0}⚔️ ${ev.hp || 0}❤️`, 'ab-debuff');
-    await sleep(300);
+  if (!target) return;
+
+  const oldAtk = parseInt(target.querySelector('.ab-minion-stats .atk').textContent.replace('⚔️', ''), 10);
+  const oldHp = parseInt(target.querySelector('.ab-minion-stats .hp').textContent.replace('❤️', ''), 10);
+  const oldMaxHp = parseInt(target.dataset.maxHp, 10);
+
+  const newAtk = oldAtk + (ev.atk || 0);
+  const newHp = oldHp + (ev.hp || 0);
+  const newMaxHp = oldMaxHp + (ev.hp || 0);
+
+  const textParts = [];
+  if (ev.atk) textParts.push(`${ev.atk}⚔️`);
+  if (ev.hp) textParts.push(`${ev.hp}❤️`);
+  if (textParts.length > 0) {
+    showFloatingText(target, textParts.join(' '), 'ab-debuff-lose');
   }
+
+  updateStats(target, { attack: newAtk, health: newHp, maxHealth: newMaxHp });
+
+  const atkEl = target.querySelector('.ab-minion-stats .atk');
+  const hpEl = target.querySelector('.ab-minion-stats .hp');
+  if (ev.atk) {
+    atkEl.classList.add('ab-stat-debuffed');
+    setTimeout(() => atkEl.classList.remove('ab-stat-debuffed'), 700);
+  }
+  if (ev.hp) {
+    hpEl.classList.add('ab-stat-debuffed');
+    setTimeout(() => hpEl.classList.remove('ab-stat-debuffed'), 700);
+  }
+  await sleep(300);
+}
+
+async function playFirstStrikeEvent(ev) {
+  const card = getCard(ev.side, ev.sourceUid);
+  if (card) flashCard(card, 'ab-lunge');
+  await sleep(200);
+}
+
+async function playBattlecryEvent(ev) {
+  const card = getCard(ev.side, ev.sourceUid);
+  if (card) flashCard(card, 'ab-lunge');
+  await sleep(200);
 }
 
 async function playSummonEvent(ev) {
@@ -283,6 +384,12 @@ async function playEvent(ev) {
     case 'debuff':
       await playDebuffEvent(ev);
       break;
+    case 'firstStrike':
+      await playFirstStrikeEvent(ev);
+      break;
+    case 'battlecry':
+      await playBattlecryEvent(ev);
+      break;
     case 'summon':
       await playSummonEvent(ev);
       break;
@@ -295,11 +402,11 @@ async function cleanupDeadFromLog(result) {
   // After all events, ensure all actually dead minions are marked dead visually
   result.attackerSurvivors.forEach((m) => {
     const card = getCard('attacker', m.uid);
-    if (card) updateHp(card, m.health);
+    if (card) updateStats(card, { attack: m.attack, health: m.health, maxHealth: m.maxHealth });
   });
   result.defenderSurvivors.forEach((m) => {
     const card = getCard('defender', m.uid);
-    if (card) updateHp(card, m.health);
+    if (card) updateStats(card, { attack: m.attack, health: m.health, maxHealth: m.maxHealth });
   });
   // Also remove cards that are not in survivors
   const aliveUids = (side) => {
