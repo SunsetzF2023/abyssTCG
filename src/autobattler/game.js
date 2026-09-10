@@ -11,7 +11,7 @@
 // Pure logic, no DOM access.
 // ============================================================
 
-import { createPlayer, startRound, autoMerge, getCombatBoard, buyXP, reroll, buyPiece, placeMinion, BUY_COST } from './shop.js';
+import { createPlayer, startRound, autoMerge, getCombatBoard, upgradeShop, reroll, buyPiece, placeMinion, BUY_COST } from './shop.js';
 import { resolveBattle } from './battle.js';
 import { setSeed } from './shop.js';
 
@@ -61,8 +61,8 @@ function aiShopPhase(player) {
   fillSlots();
 
   // Level up if possible and beneficial
-  if (player.level < 6 && player.gold >= 8) {
-    buyXP(player);
+  if (player.level < 6) {
+    upgradeShop(player);
   }
 
   // Reroll if gold is plentiful
@@ -179,6 +179,11 @@ export function resolveCombatPhase(game) {
     winner.streak += 1;
 
     game.log.push(`Round ${game.round}: ${winner.name} beats ${loser.name} for ${result.damageDealt} damage`);
+  }
+
+  // Every surviving player gains 2 shop XP from the combat round
+  for (const p of game.players) {
+    if (p.hp > 0) p.xp += 2;
   }
 
   // Check for eliminations

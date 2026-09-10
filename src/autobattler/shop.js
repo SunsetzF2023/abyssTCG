@@ -16,21 +16,21 @@ import { PIECES, getPiece } from './pieces.js';
 export const BOARD_LIMIT = 6;     // max minions on the battle board (3 front + 3 back)
 export const BENCH_LIMIT = 9;     // max minions on the bench (hand)
 export const MAX_STAR = 3;        // 3x star-1 -> star-2, 3x star-2 -> star-3
-export const STARTING_GOLD = 4;   // first shop starts with 4 gold
+export const STARTING_GOLD = 0;   // first-round income covers initial gold
 export const MAX_GOLD = 99;       // practical cap for saved gold
 export const REROLL_COST = 1;
-export const BUY_COST = 3;        // every shop card/equipment costs 3
+export const BUY_COST = 3;        // every shop card costs 3
 export const SELL_PRICE = 1;      // selling any owned minion gives 1
 export const STARTING_HP = 30;    // player hero HP
 
 // Player level -> board size + shop tier odds.
 // Board is always 6 slots (2 rows x 3 cols). Level mainly improves shop odds.
 export const LEVEL_TABLE = [
-  { level: 1, boardSize: 6, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
-  { level: 2, boardSize: 6, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 2 },
-  { level: 3, boardSize: 6, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0,  6: 0  }, xpNeeded: 4 },
-  { level: 4, boardSize: 6, odds: { 1: 40,  2: 30,  3: 20, 4: 10, 5: 0,  6: 0  }, xpNeeded: 6 },
-  { level: 5, boardSize: 6, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5,  6: 0  }, xpNeeded: 8 },
+  { level: 1, boardSize: 6, odds: { 1: 100, 2: 0,   3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 7 },
+  { level: 2, boardSize: 6, odds: { 1: 70,  2: 30,  3: 0,  4: 0,  5: 0,  6: 0  }, xpNeeded: 13 },
+  { level: 3, boardSize: 6, odds: { 1: 55,  2: 30,  3: 15, 4: 0,  5: 0,  6: 0  }, xpNeeded: 17 },
+  { level: 4, boardSize: 6, odds: { 1: 40,  2: 30,  3: 20, 4: 10, 5: 0,  6: 0  }, xpNeeded: 19 },
+  { level: 5, boardSize: 6, odds: { 1: 25,  2: 30,  3: 25, 4: 15, 5: 5,  6: 0  }, xpNeeded: 21 },
   { level: 6, boardSize: 6, odds: { 1: 15,  2: 25,  3: 30, 4: 20, 5: 8,  6: 2  }, xpNeeded: Infinity },
 ];
 
@@ -89,9 +89,8 @@ export function maxBoardSize(level) {
 // ─── Income ────────────────────────────────────────────────────
 
 export function calculateIncome(round) {
-  // Round 1 is covered by STARTING_GOLD (4).
-  // From round 2 onward, income = current round + 2 (4, 5, 6, ...).
-  return round <= 1 ? 0 : round + 2;
+  // Every round gives round + 2 base gold (1 -> 3, 2 -> 4, 3 -> 5, ...)
+  return round + 2;
 }
 
 // ─── Shop operations ───────────────────────────────────────────
@@ -352,16 +351,17 @@ export function autoMerge(player) {
 
 // ─── Level up ──────────────────────────────────────────────────
 
-export function buyXP(player) {
-  const cost = 4; // 4 gold for 4 XP (standard autobattler rate)
-  if (player.gold < cost) return false;
+export function upgradeShop(player) {
   const levelInfo = getLevelInfo(player.level);
-  if (levelInfo.xpNeeded === Infinity) return false; // max level
-  player.gold -= cost;
-  player.xp += 4;
-  while (player.xp >= getLevelInfo(player.level).xpNeeded && player.level < LEVEL_TABLE.length) {
-    player.xp -= getLevelInfo(player.level).xpNeeded;
-    player.level++;
+  if (levelInfo.xpNeeded === Infinity) return false;
+  const remaining = Math.max(0, levelInfo.xpNeeded - player.xp);
+  if (player.gold < remaining) return false;
+  player.gold -= remaining;
+  player.xp = 0;
+  player.level += 1;
+  const rewardPiece = randomPieceFromTier(player.level);
+  if (rewardPiece) {
+    player.bench.push(createMinionInstance(rewardPiece.id, 1));
   }
   return true;
 }

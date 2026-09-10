@@ -75,26 +75,18 @@
 
 - 随从/装备购买统一 **3 金币**。
 - 出售随从获得 **1 金币**。
-- 每回合开始时获得金币 = **当前回合数 + 2**。
+- 初始 0 金币；每回合开始时获得金币 = **当前回合数 + 2**。
 - 商店初始 1 级；升级后解锁高阶随从/装备。
-- 商店升级所需金币每回合 **-2**。
+- 商店升级所需金币每回合自动 **-2**（每回合结束 +2 经验）。
+- 升级商店需一次性全额买断 `剩余金币 = 升级总经验 - 当前经验`；升级后经验清零，等级 +1，并奖励目标等级随机卡牌。
+- 商店升级经验：1→2 需 7，2→3 需 13，3→4 需 17，4→5 需 19，5→6 需 21。
 - 未花完的金币可保留到下一回合。
-- 升到 2 级商店后开始刷新装备。
 
-### 7.2 需要确认/回忆的数值
+### 7.2 当前代码位置
 
-- **首回合 4 金币** 如何处理：
-  - 是初始固定给 4，然后从第 2 回合起才按“回合数 + 2”发钱？
-  - 还是把公式改为“回合数 + 3”，使第 1 回合金币 = 4？
-- **商店升级费用/经验表**：
-  - 2/3/4/5/6 级商店各需要多少金币/经验？
-  - 用户提到“每回合固定增长 2 经验 + 可用金币购买经验”，但公开攻略里写的是“升级商店所需金币每回合 -2”。
-  - 需要确认采用哪种机制，并给出具体数值。
-
-### 7.3 当前代码位置
-
-- 经济相关常量：`src/autobattler/shop.js` 顶部 `STARTING_GOLD`、`MAX_GOLD`、`REROLL_COST`、`BASE_INCOME`、`INTEREST_*` 等。
-- 升级系统：`src/autobattler/shop.js` 中的 `buyXP`、`LEVEL_TABLE`、`startRound`。
+- 经济相关常量：`src/autobattler/shop.js` 顶部 `STARTING_GOLD`、`MAX_GOLD`、`REROLL_COST`、`BUY_COST`、`SELL_PRICE` 等。
+- 升级系统：`src/autobattler/shop.js` 中的 `upgradeShop`、`LEVEL_TABLE`、`startRound`。
+- 战斗结束经验：`resolveCombatPhase` 在 `src/autobattler/game.js`。
 - 回合开始发钱：`startRound` 在 `src/autobattler/shop.js`；首次调用在 `src/autobattler/game.js` 的 `createGame` 中。
 
 ## 8. 用户工作流

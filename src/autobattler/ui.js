@@ -12,7 +12,7 @@
 
 import { createGame, resolveCombatPhase, getStandings, advanceToNextRound } from './game.js';
 import {
-  reroll, buyPiece, sellPiece, buyXP, autoMerge, placeMinion, moveToBench,
+  reroll, buyPiece, sellPiece, upgradeShop, autoMerge, placeMinion, moveToBench,
   calculateIncome, getLevelInfo, BUY_COST,
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
@@ -192,6 +192,8 @@ function renderShop() {
   const container = document.getElementById('ab-shop');
   const player = game.players[0];
   const isShopPhase = game.phase === 'shop';
+  const levelInfo = getLevelInfo(player.level);
+  const upgradeCost = levelInfo.xpNeeded === Infinity ? 0 : Math.max(0, levelInfo.xpNeeded - player.xp);
 
   container.innerHTML = player.shop.map((piece, i) => {
     const race = RACE_INFO[piece.race] || { icon: '', color: '#888' };
@@ -209,7 +211,10 @@ function renderShop() {
   }).join('');
 
   document.getElementById('ab-reroll').disabled = !isShopPhase || player.gold < 1;
-  document.getElementById('ab-levelup').disabled = !isShopPhase || player.gold < 4 || player.level >= 6;
+  const levelBtn = document.getElementById('ab-levelup');
+  const canUpgrade = isShopPhase && player.level < 6 && player.gold >= upgradeCost;
+  levelBtn.disabled = !canUpgrade;
+  levelBtn.textContent = `⬆ 升级 (${upgradeCost}💰)`;
   document.getElementById('ab-ready').disabled = !isShopPhase;
 }
 
@@ -265,10 +270,14 @@ function renderPlayerInfo() {
   const nextRound = game.round + 1;
   const income = calculateIncome(nextRound);
   const levelInfo = getLevelInfo(player.level);
+  const upgradeCost = levelInfo.xpNeeded === Infinity ? 0 : Math.max(0, levelInfo.xpNeeded - player.xp);
+  const levelText = levelInfo.xpNeeded === Infinity
+    ? `Lv MAX`
+    : `Lv ${player.level} (升级还需 ${upgradeCost}💰)`;
   document.getElementById('ab-player-info').innerHTML = `
     <span class="ab-gold">💰 ${player.gold}</span>
     <span class="ab-hp">❤️ ${player.hp}</span>
-    <span class="ab-level">Lv ${player.level} (${player.xp}/${levelInfo.xpNeeded === Infinity ? 'MAX' : levelInfo.xpNeeded} XP)</span>
+    <span class="ab-level">${levelText}</span>
     <span class="ab-income">下回合收入: ${income}💰</span>
     <span class="ab-board-count">棋盘: ${player.board.filter(Boolean).length}/6</span>
   `;
@@ -470,7 +479,7 @@ export function setupAutobattlerEvents() {
   // Level up
   document.getElementById('ab-levelup').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    if (buyXP(game.players[0])) {
+    if (upgradeShop(game.players[0])) {
       render();
     }
   });

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createPlayer, rollShop, reroll, buyPiece, placeMinion,
-  tryMerge, autoMerge, buyXP, calculateIncome, maxBoardSize,
+  tryMerge, autoMerge, upgradeShop, calculateIncome, maxBoardSize,
   STARTING_HP, STARTING_GOLD, BUY_COST, setSeed,
 } from '../src/autobattler/shop.js';
 import { PIECES } from '../src/autobattler/pieces.js';
@@ -24,11 +24,8 @@ describe('shop — player creation', () => {
 });
 
 describe('shop — income', () => {
-  it('round 1 income is 0 (starting gold covers first turn)', () => {
-    expect(calculateIncome(1)).toBe(0);
-  });
-
-  it('income from round 2 onward is round + 2', () => {
+  it('income is round + 2 for every round', () => {
+    expect(calculateIncome(1)).toBe(3);
     expect(calculateIncome(2)).toBe(4);
     expect(calculateIncome(3)).toBe(5);
     expect(calculateIncome(4)).toBe(6);
@@ -163,11 +160,23 @@ describe('shop — three-copy merge', () => {
 });
 
 describe('shop — leveling', () => {
-  it('buyXP costs 4 gold and adds XP', () => {
+  it('upgradeShop fully pays remaining XP, resets xp, levels up and gives a reward', () => {
     const p = createPlayer('Test');
     p.gold = 10;
-    buyXP(p);
-    expect(p.gold).toBe(6);
+    const startBench = p.bench.length;
+    const result = upgradeShop(p);
+    expect(result).toBe(true);
+    expect(p.gold).toBe(3); // 10 - 7
+    expect(p.level).toBe(2);
+    expect(p.xp).toBe(0);
+    expect(p.bench.length).toBe(startBench + 1);
+  });
+
+  it('upgradeShop fails if gold is insufficient', () => {
+    const p = createPlayer('Test');
+    p.gold = 1;
+    expect(upgradeShop(p)).toBe(false);
+    expect(p.level).toBe(1);
   });
 
   it('max board size is 6 at all levels', () => {
