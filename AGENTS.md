@@ -1,6 +1,7 @@
 # abyssTCG 项目上下文（AGENTS.md）
 
 > 本文件用于在另一台设备/另一个 Devin 会话中快速恢复当前项目上下文。只保留与 `abyssTCG` 游戏开发直接相关的内容，略去早期备份、个人资料等无关信息。
+> 当前卡池：**48 张随从，0 张咒术**；用户计划新增咒术牌与更多随从。
 
 ---
 
@@ -10,103 +11,111 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**（截至本文件）：`e89506b`
-  - 修复了亡语召唤随从显示 `undefined` 的问题
-  - 为卡牌死亡添加了崩解碎片动画
+- **当前最新提交**：`4162836`
+  - 实现三连合成数值继承与实例隔离
+  - 金币/经验/商店等级按《月圆之夜》设计案对齐
+  - 战斗伤害公式、成长属性持久化、剧毒机制移除
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
 
 - **构建工具**：Vite
 - **语言**：Vanilla JavaScript ES modules
-- **测试**：Vitest
+- **测试**：Vitest（3 个测试文件，48 个测试通过）
   - 命令：`npm run test` / `npm test -- --run`
-  - 当前 3 个测试文件，49 个测试通过
 - **Lint**：ESLint flat config
   - 命令：`npm run lint`
 - **构建**：`npm run build`
-- **浏览器全局变量**：已在 `eslint.config.js` 中声明 `window`、`document`、`console`、`setTimeout`、`clearTimeout`、`Math` 等
+- **工作流**：`npm run lint` → `npm run test` → `npm run build` → `git commit` → `git push` → 确认 CI / Pages
 
 ## 3. 项目目标与边界
 
-`abyssTCG` 是一个原创的自动战棋/PvP 游戏，灵感来自《月圆之夜：镜中对决》，但必须保持原创：
+`abyssTCG` 是原创自动战棋/PvP 游戏，灵感来自《月圆之夜：镜中对决》：
 
-- 使用原创种族、单位名称、美术占位、数值、效果描述。
-- 不直接复制《月圆之夜》的卡牌名、原画、完整数值或完整效果文本。
-- 支持离线 8 人模拟（1 真人 + 7 AI），远期目标为 Supabase 在线多人对战。
+- 使用原创种族、单位名称、数值、效果描述，不直接复制参考游戏。
+- 当前支持离线 8 人模拟（1 真人 + 7 AI），远期目标 Supabase 在线多人。
+- 棋盘 6 格：前排 0/1/2，后排 3/4/5。
+- 相邻判定：左右同排 + 前后同列。
 
 ## 4. 核心架构与关键文件
 
 | 文件 | 作用 |
 |------|------|
-| `index.html` | 自走棋 DOM 结构、商店详情弹窗、已拥有随从详情弹窗 |
+| `index.html` | 自走棋 DOM 结构、商店/备战席/详情弹窗 |
 | `src/main.js` | 入口 |
 | `src/style.css` | 棋盘、商店、弹窗、战斗动画样式 |
-| `src/autobattler/pieces.js` | 原创 8 种族 6 阶单位定义、`RACE_INFO`、`PIECES`、`TOKEN_PIECES`、自动生成 `description` / `flavor` |
-| `src/autobattler/shop.js` | 商店/备战席、六格棋盘、购买/出售/放置/合并、放置时战吼 |
-| `src/autobattler/battle.js` | 纯战斗引擎、战斗日志、亡语/战吼/相邻触发 |
-| `src/autobattler/game.js` | 玩家创建、8 人配对、战斗阶段、回合流转 |
-| `src/autobattler/ui.js` | 商店/棋盘/备战席 UI、拖拽、弹窗、战斗流程 |
-| `src/autobattler/animator.js` | 战斗回放与动画（攻击、光束、伤害数字、治疗/增益、死亡碎片、召唤） |
+| `src/autobattler/pieces.js` | 8 种族 6 阶单位定义、`RACE_INFO`、`PIECES`、`TOKEN_PIECES`、自动生成 `description`/`flavor` |
+| `src/autobattler/shop.js` | 商店/备战席/六格棋盘、购买/出售/放置/合并、放置时战吼、三连合成、升级商店 |
+| `src/autobattler/battle.js` | 纯战斗引擎、事件日志、目标选择、攻击顺序、亡语/成长/盾/先手/连击/顺劈/贯穿 |
+| `src/autobattler/game.js` | 玩家创建、8 人配对、战斗阶段、回合流转、伤害结算、成长持久化 |
+| `src/autobattler/ui.js` | 商店/棋盘/备战席 UI、拖拽、弹窗、战斗按钮、玩家信息显示 |
+| `src/autobattler/animator.js` | 战斗回放与动画（卡牌飞跃、伤害数字、治疗/增益/减益、死亡碎片、召唤） |
 | `src/supabase-config.js` / `src/supabase-auth.js` | Supabase 客户端、GitHub/匿名登录 |
 | `tests/autobattler.test.js` / `tests/autobattler_shop.test.js` / `tests/engine.test.js` | 测试 |
 
-## 5. 棋盘模型
+## 5. 当前卡池
 
-- 棋盘固定 6 格：前排 0/1/2，后排 3/4/5。
-- 相邻判定使用 2×3 网格，包含左右同排和上下前后排：
-  - 例如位置 1 的相邻为 0、2、4。
-  - 位置 0 的相邻为 1、3。
-- 放置时战吼（`battlecry`）只在从备战席拖到棋盘时触发一次。
+- **总卡牌**：48 张（全部随从，0 咒术）
+- **阵营**：neutral、ghost、warrior、starborne、mech、nature、beast、dragon（各 6 张）
+- **星级/tier**：1~6 阶，每阶 8 张，每个阵营每个 tier 1 张
+- **token 随从**：见 `TOKEN_PIECES`
+- 用户计划后续新增咒术牌与更多随从
 
-## 6. 最近已完成的关键改动
+## 6. 经济与商店等级
 
-1. **相邻检测修复**：前后排同列也算相邻。
-2. **棋盘随从点击弹窗**：棋盘与备战席上的随从都能点开查看详情；拖拽完成后 250ms 内不会误触发。
-3. **亡语召唤修复**：战斗日志 `summon` 事件现在携带完整属性（`race`/`tier`/`star`/`attack`/`health`/`maxHealth`/`shield`）。
-4. **死亡动画**：
-   - `.ab-minion.ab-dead` 使用 `card-shatter` 关键帧（放大变灰→缩小旋转消失）。
-   - `markDead` 会生成 10 个 `.ab-shard` 碎片，从卡牌中心飞散。
-   - `updateHp` 在生命值 ≤0 时自动调用 `markDead`。
+- `STARTING_GOLD = 0`
+- 每回合开始收入：`当前回合 + 2`（第 1 回 3，第 2 回 4，第 3 回 5…）
+- 购买任意商店卡牌：**3 金币**
+- 出售任意随从：**1 金币**
+- 刷新商店：**1 金币**
+- 金币跨回合完全保留，无利息机制
+- 商店等级 1~6，升级后解锁高阶随从卡池
+- 每回合战斗结束（无论胜负/平局），存活玩家获得 **2 点商店经验**
+- 升级需一次性全额买断：`剩余金币 = 升级总经验 - 当前经验`；升级后经验清零、等级 +1
+- 升级经验：1→2 需 7，2→3 需 13，3→4 需 17，4→5 需 19，5→6 需 21
+- 升级后奖励目标等级随机随从卡到备战席
+- 代码位置：`src/autobattler/shop.js` `LEVEL_TABLE`、`upgradeShop`、`startRound`；`src/autobattler/game.js` `resolveCombatPhase`
 
-## 7. 当前待确认/待实现：经济系统对齐《月圆之夜》PVP
+## 7. 随从实例与三连合成
 
-### 7.1 已查到的公开信息
+- `PIECES` 是静态只读模板；`rollShop` 使用 `{ ...piece }` 生成镜像，`buyPiece` 通过 `createMinionInstance` 创建私有实例。
+- 准备阶段属性变更（入场战吼、装备等）只作用于 `Minion Instance` 的 `attack`/`health`/`maxHealth`，永不回写 `PIECES`。
+- `tryMerge`（三连合成）：
+  1. 新星级实例基础值 = `模板属性 × 新星级`
+  2. 累计三个旧实例的永久增量：`attack - 模板攻击×旧星级`、`health/maxHealth - 模板生命×旧星级`
+  3. 将累计增量加到新实例
+  4. 奖励一张 `(商店等级 + 1)` tier 随机随从到备战席（最高 6 级）
+  5. 旧实例 GUID 销毁，新实例获得全新 GUID
+- 战斗运行时：`getCombatBoard` 生成临时克隆；非成长类伤害/buff 只在克隆上发生。
+- 战后持久化：遍历战斗日志，把 `subtype === 'grow'` 的 `buff` 事件增量写回 `player.board` 原始实例。其余战斗内变化不保留。
 
-- 随从/装备购买统一 **3 金币**。
-- 出售随从获得 **1 金币**。
-- 初始 0 金币；每回合开始时获得金币 = **当前回合数 + 2**。
-- 商店初始 1 级；升级后解锁高阶随从/装备。
-- 商店升级所需金币每回合自动 **-2**（每回合结束 +2 经验）。
-- 升级商店需一次性全额买断 `剩余金币 = 升级总经验 - 当前经验`；升级后经验清零，等级 +1，并奖励目标等级随机卡牌。
-- 商店升级经验：1→2 需 7，2→3 需 13，3→4 需 17，4→5 需 19，5→6 需 21。
-- 未花完的金币可保留到下一回合。
+## 8. 战斗行为与伤害结算
 
-### 7.3 随从实例隔离与三连合成
+- **攻击顺序**：前排从左到右，双方交替出手；前排全部完成本轮攻击后，后排从左到右继续。
+- **目标锁定**：优先攻击敌方前排；若前排有存活则只打前排，按左到右选择；前排全灭后解锁后排，同样左到右。
+- **剧毒机制已移除**。
+- 战斗持续直到一方所有随从阵亡，立即结算。
+- 玩家受到伤害 = `胜利方存活随从星级之和 + 胜利方当前商店等级`
+- 平局双方不受伤害。
+- 先手/连击/顺劈/贯穿/护盾/亡语/成长等按 `battle.js` 实现。
 
-- `PIECES` 是静态只读模板；`rollShop` 每次都生成 `{ ...piece }` 镜像，`buyPiece` 再通过 `createMinionInstance` 创建私有实例。
-- 所有准备阶段 buff（入场效果等）只修改玩家拥有的 `Minion Instance`（`attack/health/maxHealth`），绝不触碰 `PIECES` 模板。
-- 三连合成 `tryMerge`：
-  - 基础值按 `模板属性 × 新星级` 计算。
-  - 三个旧实例的永久增量（`attack - 模板攻击×旧星级`、`health/maxHealth - 模板生命×旧星级`）相加后继承给新的金色实例。
-  - 合成后奖励一张 `(商店等级 + 1)`  tier 的随机随从卡到备战席（最高 6 级）。
-- 战斗中 `getCombatBoard` 生成运行时克隆；非成长类临时变化只在克隆上发生；只有 `grow` 战斗日志会在战后写回 `player.board` 原始实例。
+## 9. 动画与 UI 要点
 
-### 7.4 当前代码位置
+- 攻击：攻击卡牌克隆飞撞目标并返回，命中时目标闪红、弹伤害数字、扣血。
+- 增益：卡牌上攻击/生命数字直接变成金色并放大，无向上箭头。
+- 减益：数字闪白色/淡蓝色并放大。
+- 死亡：卡牌崩解成 10 个碎片飞散。
+- 召唤：从日志完整属性重建卡牌并播放入场动画。
+- 商店升级按钮显示具体剩余金币，金币足够时才可点击。
 
-- 经济相关常量：`src/autobattler/shop.js` 顶部 `STARTING_GOLD`、`MAX_GOLD`、`REROLL_COST`、`BUY_COST`、`SELL_PRICE` 等。
-- 升级系统：`src/autobattler/shop.js` 中的 `upgradeShop`、`LEVEL_TABLE`、`startRound`。
-- 战斗结束经验：`resolveCombatPhase` 在 `src/autobattler/game.js`。
-- 回合开始发钱：`startRound` 在 `src/autobattler/shop.js`；首次调用在 `src/autobattler/game.js` 的 `createGame` 中。
+## 10. 用户工作流
 
-## 8. 用户工作流
-
-- 希望**每次修改后直接 commit + push**，方便在 GitHub Pages 实际测试。
+- 每次修改后 `commit + push`，方便在 GitHub Pages 实际测试。
 - UI/说明文字使用中文。
-- 测试流程：`npm run lint` → `npm test -- --run` → `npm run build` → `git commit` → `git push` → 确认 CI / GitHub Pages 部署成功。
+- 不引入未验证新依赖；不暴露 Supabase 密钥。
+- 尽量避免 emoji（除非用户要求）。
 
-## 9. 补充约定
+## 11. 近期待办（根据用户最新计划）
 
-- 不引入未经验证的新依赖；尽量使用项目已有工具。
-- 不在代码中暴露/打印密钥或 Supabase 配置。
-- 保持中文界面，避免在文件中使用 emoji（除非用户要求）。
+- 用户将新增咒术牌与更多随从牌，需扩展 `PIECES` 数据模型或新增 `type` 字段区分 `minion`/`spell`。
+- 咒术牌在商店、手牌/备战席、战斗中的使用逻辑需进一步设计。
