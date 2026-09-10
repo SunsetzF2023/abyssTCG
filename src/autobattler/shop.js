@@ -274,11 +274,13 @@ export function tryMerge(player, pieceId, star) {
   // Remove 3 copies (prefer bench first)
   let removed = 0;
   const toRemove = new Set();
+  const removedInstances = [];
   // Prefer bench copies
   for (const m of player.bench) {
     if (removed >= 3) break;
     if (m.pieceId === pieceId && m.star === star && !toRemove.has(m.uid)) {
       toRemove.add(m.uid);
+      removedInstances.push(m);
       removed++;
     }
   }
@@ -287,6 +289,7 @@ export function tryMerge(player, pieceId, star) {
     if (removed >= 3) break;
     if (m && m.pieceId === pieceId && m.star === star && !toRemove.has(m.uid)) {
       toRemove.add(m.uid);
+      removedInstances.push(m);
       removed++;
     }
   }
@@ -300,9 +303,23 @@ export function tryMerge(player, pieceId, star) {
     }
   }
 
-  // Create the upgraded minion
+  // Create the upgraded minion. It starts from the template at the new star,
+  // then inherits the total permanent delta from the three merged instances.
+  const piece = getPiece(pieceId);
   const newStar = Math.min(star + 1, MAX_STAR);
   const upgraded = createMinionInstance(pieceId, newStar);
+
+  let atkDelta = 0;
+  let hpDelta = 0;
+  let maxHpDelta = 0;
+  for (const m of removedInstances) {
+    atkDelta += m.attack - piece.attack * m.star;
+    hpDelta += m.health - piece.health * m.star;
+    maxHpDelta += m.maxHealth - piece.health * m.star;
+  }
+  upgraded.attack += atkDelta;
+  upgraded.health += hpDelta;
+  upgraded.maxHealth += maxHpDelta;
 
   // Place on bench (or board if bench is full and board has space)
   if (player.bench.length < BENCH_LIMIT) {
@@ -314,6 +331,14 @@ export function tryMerge(player, pieceId, star) {
     } else {
       player.bench.push(upgraded); // force onto bench even if over limit temporarily
     }
+  }
+
+  // Triple reward: a free random minion of (shop level + 1), capped at tier 6
+  const rewardTier = Math.min(player.level + 1, 6);
+  const rewardPiece = randomPieceFromTier(rewardTier);
+  if (rewardPiece) {
+    const reward = createMinionInstance(rewardPiece.id, 1);
+    player.bench.push(reward);
   }
 
   return upgraded;

@@ -130,7 +130,31 @@ describe('shop — three-copy merge', () => {
     expect(result.star).toBe(2);
     expect(result.attack).toBe(piece.attack * 2);
     expect(result.health).toBe(piece.health * 2);
-    expect(p.bench.length + p.board.filter(Boolean).length).toBe(1);
+    expect(p.bench.length + p.board.filter(Boolean).length).toBe(2); // upgraded + reward
+  });
+
+  it('merge inherits total permanent buffs from the three copies', () => {
+    const p = createPlayer('Test');
+    const piece = PIECES[0];
+    for (let i = 0; i < 3; i++) {
+      p.bench.push({
+        uid: 'test' + i,
+        pieceId: piece.id,
+        name: piece.name,
+        race: piece.race,
+        tier: piece.tier,
+        star: 1,
+        attack: piece.attack + 2,
+        health: piece.health + 2,
+        maxHealth: piece.health + 2,
+        ability: piece.ability,
+      });
+    }
+    const result = tryMerge(p, piece.id, 1);
+    expect(result).toBeTruthy();
+    expect(result.attack).toBe(piece.attack * 2 + 6); // 3 * +2
+    expect(result.health).toBe(piece.health * 2 + 6);
+    expect(result.maxHealth).toBe(piece.health * 2 + 6);
   });
 
   it('autoMerge finds and merges all triples', () => {

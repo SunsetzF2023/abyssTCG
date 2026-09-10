@@ -82,7 +82,17 @@
 - 商店升级经验：1→2 需 7，2→3 需 13，3→4 需 17，4→5 需 19，5→6 需 21。
 - 未花完的金币可保留到下一回合。
 
-### 7.2 当前代码位置
+### 7.3 随从实例隔离与三连合成
+
+- `PIECES` 是静态只读模板；`rollShop` 每次都生成 `{ ...piece }` 镜像，`buyPiece` 再通过 `createMinionInstance` 创建私有实例。
+- 所有准备阶段 buff（入场效果等）只修改玩家拥有的 `Minion Instance`（`attack/health/maxHealth`），绝不触碰 `PIECES` 模板。
+- 三连合成 `tryMerge`：
+  - 基础值按 `模板属性 × 新星级` 计算。
+  - 三个旧实例的永久增量（`attack - 模板攻击×旧星级`、`health/maxHealth - 模板生命×旧星级`）相加后继承给新的金色实例。
+  - 合成后奖励一张 `(商店等级 + 1)`  tier 的随机随从卡到备战席（最高 6 级）。
+- 战斗中 `getCombatBoard` 生成运行时克隆；非成长类临时变化只在克隆上发生；只有 `grow` 战斗日志会在战后写回 `player.board` 原始实例。
+
+### 7.4 当前代码位置
 
 - 经济相关常量：`src/autobattler/shop.js` 顶部 `STARTING_GOLD`、`MAX_GOLD`、`REROLL_COST`、`BUY_COST`、`SELL_PRICE` 等。
 - 升级系统：`src/autobattler/shop.js` 中的 `upgradeShop`、`LEVEL_TABLE`、`startRound`。
