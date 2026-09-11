@@ -101,6 +101,7 @@ export function startPvpGame(newGame) {
 }
 
 function applyRemoteAction(action) {
+  console.log('[pvp] recv action', action, 'phase=', game?.phase);
   if (!game || !game.isHost || game.phase !== 'shop') return;
   const player = game.players[action.playerIndex];
   if (!player) return;

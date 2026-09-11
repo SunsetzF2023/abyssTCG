@@ -1,29 +1,34 @@
 // ============================================================
 // Host-authoritative PVP game sync — AbyssTCG
 //
-// Uses a single shared Supabase Broadcast channel per room so the
-// host can push the full game state and clients can send actions.
+// Uses one Broadcast channel for game_state (host -> clients) and
+// a second channel for player_action (clients -> host). Keeping
+// actions on their own channel guarantees the listener is added
+// before the channel subscribes on the host.
 // ============================================================
 
 import { supabaseClient } from './supabase-config.js';
 
-const channels = new Map(); // roomId -> { channel, ready, resolve, reject, subscribed }
+const gameChannels = new Map();
+const actionChannels = new Map();
 
-function getChannelEntry(roomId) {
-  let entry = channels.get(roomId);
+function getChannel(map, roomId, prefix) {
+  let entry = map.get(roomId);
   if (!entry) {
-    const channel = supabaseClient.channel(`game:${roomId}`, { config: { broadcast: { self: true } } });
+    const channel = supabaseClient.channel(`${prefix}:${roomId}`, { config: { broadcast: { self: true } } });
     let resolve;
     let reject;
     const ready = new Promise((res, rej) => { resolve = res; reject = rej; });
     entry = { channel, ready, resolve, reject, subscribed: false };
-    channels.set(roomId, entry);
+    map.set(roomId, entry);
   }
   return entry;
 }
 
-function ensureSubscribed(roomId) {
-  const entry = getChannelEntry(roomId);
+function getGameChannel(roomId) { return getChannel(gameChannels, roomId, 'game'); }
+function getActionChannel(roomId) { return getChannel(actionChannels, roomId, 'game-actions'); }
+
+function ensureChannel(entry) {
   if (entry.subscribed) return entry.ready;
   entry.subscribed = true;
   entry.channel.subscribe((status) => {
@@ -34,30 +39,6 @@ function ensureSubscribed(roomId) {
     }
   });
   return entry.ready;
-}
-
-export function subscribeToGameState(roomId, onState) {
-  const entry = getChannelEntry(roomId);
-  entry.channel.on('broadcast', { event: 'game_state' }, (payload) => {
-    onState(payload.payload);
-  });
-  ensureSubscribed(roomId);
-  return () => {
-    entry.channel.unsubscribe();
-    channels.delete(roomId);
-  };
-}
-
-export function subscribeToGameActions(roomId, onAction) {
-  const entry = getChannelEntry(roomId);
-  entry.channel.on('broadcast', { event: 'player_action' }, (payload) => {
-    onAction(payload.payload);
-  });
-  ensureSubscribed(roomId);
-  return () => {
-    entry.channel.unsubscribe();
-    channels.delete(roomId);
-  };
 }
 
 function safeCloneGame(game) {
@@ -71,9 +52,33 @@ function safeCloneGame(game) {
   }
 }
 
+export function subscribeToGameState(roomId, onState) {
+  const entry = getGameChannel(roomId);
+  entry.channel.on('broadcast', { event: 'game_state' }, (payload) => {
+    onState(payload.payload);
+  });
+  ensureChannel(entry);
+  return () => {
+    entry.channel.unsubscribe();
+    gameChannels.delete(roomId);
+  };
+}
+
+export function subscribeToGameActions(roomId, onAction) {
+  const entry = getActionChannel(roomId);
+  entry.channel.on('broadcast', { event: 'player_action' }, (payload) => {
+    onAction(payload.payload);
+  });
+  ensureChannel(entry);
+  return () => {
+    entry.channel.unsubscribe();
+    actionChannels.delete(roomId);
+  };
+}
+
 export async function broadcastGameState(roomId, game) {
-  const entry = getChannelEntry(roomId);
-  await ensureSubscribed(roomId);
+  const entry = getGameChannel(roomId);
+  await ensureChannel(entry);
   const payload = safeCloneGame(game);
   if (!payload) return;
   await entry.channel.send({
@@ -84,8 +89,9 @@ export async function broadcastGameState(roomId, game) {
 }
 
 export async function sendPlayerAction(roomId, action) {
-  const entry = getChannelEntry(roomId);
-  await ensureSubscribed(roomId);
+  const entry = getActionChannel(roomId);
+  await ensureChannel(entry);
+  console.log('[pvp] send action', action);
   await entry.channel.send({
     type: 'broadcast',
     event: 'player_action',
