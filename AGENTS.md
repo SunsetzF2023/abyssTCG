@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`206bc82`
-  - 战斗棋盘上方显示玩家与对手名称
+- **当前最新提交**：`70777e5`
+  - 修复战斗动画棋盘左右侧与玩家/对手的映射错位
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
@@ -47,6 +47,7 @@
 | `src/autobattler/battle.js` | 纯战斗引擎、事件日志、目标选择、攻击顺序、亡语/成长/盾/先手/连击/顺劈/贯穿 |
 | `src/autobattler/game.js` | 玩家创建、8 人配对、战斗阶段、回合流转、伤害结算、成长持久化 |
 | `src/autobattler/ui.js` | 商店/棋盘/备战席 UI、拖拽、弹窗、战斗按钮、玩家信息显示 |
+| `src/autobattler/room.js` | 本地 8 人房间大厅（8 插槽、房主、添加/踢出/一键补全 AI） |
 | `src/autobattler/animator.js` | 战斗回放与动画（卡牌飞跃、伤害数字、治疗/增益/减益、死亡碎片、召唤） |
 | `src/supabase-config.js` / `src/supabase-auth.js` | Supabase 客户端、GitHub/匿名登录 |
 | `tests/autobattler.test.js` / `tests/autobattler_shop.test.js` / `tests/engine.test.js` | 测试 |

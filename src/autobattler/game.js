@@ -14,6 +14,7 @@
 import { createPlayer, startRound, autoMerge, getCombatBoard, upgradeShop, reroll, buyPiece, placeMinion, BUY_COST } from './shop.js';
 import { resolveBattle } from './battle.js';
 import { setSeed } from './shop.js';
+import { SLOT_TYPE } from './room.js';
 
 export const PLAYER_COUNT = 8;
 export const MAX_ROUNDS = 30;
@@ -108,6 +109,33 @@ export function createGame(humanPlayerName = 'You', seed = Date.now()) {
     round: 1,
     phase: 'shop', // 'shop' | 'combat' | 'gameover'
     battles: [],   // results of current round
+    log: [],
+    winner: null,
+  };
+}
+
+export function createGameFromRoom(room, seed = Date.now()) {
+  setSeed(seed);
+  const players = [];
+  for (const slot of room.slots) {
+    const isAI = slot.type !== SLOT_TYPE.PLAYER;
+    const name = slot.name || (isAI ? 'AI' : 'Player');
+    players.push(createPlayer(name, isAI));
+  }
+
+  // Give everyone their first shop
+  for (const p of players) {
+    startRound(p, 1);
+    if (p.isAI) {
+      aiShopPhase(p);
+    }
+  }
+
+  return {
+    players,
+    round: 1,
+    phase: 'shop',
+    battles: [],
     log: [],
     winner: null,
   };

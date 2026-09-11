@@ -10,7 +10,10 @@
 // Drag and drop is the primary way to arrange minions.
 // ============================================================
 
-import { createGame, resolveCombatPhase, getStandings, advanceToNextRound } from './game.js';
+import { createGameFromRoom, resolveCombatPhase, getStandings, advanceToNextRound } from './game.js';
+import {
+  createRoom, addAISlot, fillWithAI, removeSlot, canStartGame, startGame, getSlotLabel,
+} from './room.js';
 import {
   reroll, buyPiece, sellPiece, upgradeShop, autoMerge, placeMinion, moveToBench,
   calculateIncome, getLevelInfo, BUY_COST,
@@ -30,7 +33,13 @@ let dragResetTimer = null;
 const abScreen = () => document.getElementById('screen-autobattler');
 
 export function startAutobattler() {
-  game = createGame('你', Date.now());
+  const room = createRoom('你');
+  game = {
+    phase: 'lobby',
+    round: 0,
+    room,
+    host: room.host.name,
+  };
   draggedUid = null;
   draggedSource = null;
   document.querySelectorAll('.screen').forEach((s) => s.classList.add('hidden'));
@@ -51,6 +60,15 @@ export function exitAutobattler() {
 function render() {
   if (!game) return;
   renderTopbar();
+
+  if (game.phase === 'lobby') {
+    renderLobby();
+    return;
+  }
+
+  document.getElementById('ab-lobby').classList.add('hidden');
+  document.getElementById('ab-battle-area').classList.remove('hidden');
+
   renderStandings();
 
   if (game.phase === 'combat') {
@@ -74,9 +92,74 @@ function render() {
   }
 }
 
+function renderLobby() {
+  const lobby = document.getElementById('ab-lobby');
+  const room = game.room;
+  if (!lobby || !room) return;
+
+  document.getElementById('ab-battle-area').classList.add('hidden');
+  document.getElementById('ab-bench-area').classList.add('hidden');
+  document.getElementById('ab-shop-area').classList.add('hidden');
+  document.getElementById('ab-player-info').classList.add('hidden');
+  document.getElementById('ab-combat-log').classList.add('hidden');
+  document.getElementById('ab-combat-controls').classList.add('hidden');
+  lobby.classList.remove('hidden');
+
+  const slotsHtml = room.slots.map((slot) => {
+    const label = getSlotLabel(slot);
+    const isHostSlot = slot.index === 0;
+    return `
+      <div class="ab-lobby-slot" data-index="${slot.index}">
+        <span class="ab-lobby-slot-index">${slot.index + 1}</span>
+        <span class="ab-lobby-slot-name">${label}</span>
+        ${!isHostSlot ? `<button class="ab-lobby-kick" data-index="${slot.index}">踢出</button>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const controlsHtml = `
+    <button id="ab-add-ai" class="btn-ab">添加 AI</button>
+    <button id="ab-fill-ai" class="btn-ab">一键补全 AI</button>
+    <button id="ab-start-game" class="btn-ab ${canStartGame(room) ? '' : 'disabled'}" ${canStartGame(room) ? '' : 'disabled'}>开始游戏</button>
+  `;
+
+  lobby.innerHTML = `
+    <h3>8 人房间</h3>
+    <div class="ab-lobby-slots">${slotsHtml}</div>
+    <div class="ab-lobby-controls">${controlsHtml}</div>
+  `;
+
+  document.getElementById('ab-add-ai').addEventListener('click', () => {
+    const idx = room.slots.findIndex((s) => s.type === 'empty');
+    if (idx !== -1) addAISlot(room, idx);
+    render();
+  });
+
+  document.getElementById('ab-fill-ai').addEventListener('click', () => {
+    fillWithAI(room);
+    render();
+  });
+
+  document.getElementById('ab-start-game').addEventListener('click', () => {
+    if (!canStartGame(room)) return;
+    startGame(room);
+    game = createGameFromRoom(room);
+    render();
+  });
+
+  lobby.querySelectorAll('.ab-lobby-kick').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.index, 10);
+      removeSlot(room, idx);
+      render();
+    });
+  });
+}
+
 function renderTopbar() {
-  document.getElementById('ab-round').textContent = `第 ${game.round} 回合`;
-  const phaseText = game.phase === 'shop' ? '🛒 准备阶段' :
+  document.getElementById('ab-round').textContent = game.phase === 'lobby' ? '房间' : `第 ${game.round} 回合`;
+  const phaseText = game.phase === 'lobby' ? '🏠 房间大厅' :
+                    game.phase === 'shop' ? '🛒 准备阶段' :
                     game.phase === 'combat' ? '⚔️ 战斗阶段' :
                     '🏆 游戏结束';
   document.getElementById('ab-phase').textContent = phaseText;
