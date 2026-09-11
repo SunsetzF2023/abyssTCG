@@ -54,10 +54,27 @@ export async function joinRoomByCode(roomCode) {
   const user = getCurrentUser();
   if (!user) throw new Error('Not signed in');
 
+  const code = roomCode.trim().toUpperCase();
+
+  // Use server-side function for atomic, RLS-safe join.
+  // Falls back to direct update if the function is not deployed yet.
+  const { data: rpcData, error: rpcError } = await supabaseClient
+    .rpc('join_room_by_code', { p_code: code });
+
+  if (rpcData) {
+    await setCurrentRoom(rpcData.id);
+    return rpcData;
+  }
+
+  if (rpcError && !/function .* does not exist/i.test(rpcError.message)) {
+    throw rpcError;
+  }
+
+  // Fallback: direct client join (requires ab_rooms update policy to allow it)
   const { data: room, error: fetchError } = await supabaseClient
     .from('ab_rooms')
     .select('*')
-    .eq('room_code', roomCode)
+    .eq('room_code', code)
     .eq('status', 'lobby')
     .single();
 
@@ -74,10 +91,12 @@ export async function joinRoomByCode(roomCode) {
     .from('ab_rooms')
     .update(updates)
     .eq('id', room.id)
+    .eq(`slot_${firstEmpty}`, EMPTY_SLOT)
     .select()
     .single();
 
   if (error) throw error;
+  if (!data) throw new Error('Slot was taken, please try again');
 
   await setCurrentRoom(data.id);
   return data;

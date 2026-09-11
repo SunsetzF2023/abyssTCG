@@ -92,3 +92,59 @@ CREATE INDEX IF NOT EXISTS idx_ab_rooms_code ON public.ab_rooms(room_code);
 CREATE INDEX IF NOT EXISTS idx_ab_rooms_status ON public.ab_rooms(status);
 CREATE INDEX IF NOT EXISTS idx_ab_profiles_online ON public.ab_profiles(is_online);
 CREATE INDEX IF NOT EXISTS idx_ab_invitations_receiver ON public.ab_invitations(receiver_id);
+
+-- ============================================================
+-- Server-side join helper
+-- Joining must be atomic (fetch first empty slot + write it) and
+-- must not depend on the host being the updater. This function
+-- runs as SECURITY DEFINER so it can update ab_rooms directly.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.join_room_by_code(p_code text)
+RETURNS public.ab_rooms
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_room public.ab_rooms;
+  v_slot int;
+  v_user uuid;
+  v_json jsonb;
+BEGIN
+  v_user := auth.uid();
+  IF v_user IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+
+  SELECT * INTO v_room
+  FROM public.ab_rooms
+  WHERE room_code = upper(p_code) AND status = 'lobby'
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Room not found or already started';
+  END IF;
+
+  v_json := to_jsonb(v_room);
+
+  SELECT i INTO v_slot
+  FROM generate_series(0, 7) AS i
+  WHERE v_json ->> ('slot_' || i) = 'EMPTY'
+  ORDER BY i
+  LIMIT 1;
+
+  IF v_slot IS NULL THEN
+    RAISE EXCEPTION 'Room is full';
+  END IF;
+
+  EXECUTE format('UPDATE public.ab_rooms SET slot_%s = $1 WHERE id = $2 RETURNING *', v_slot)
+    INTO v_room
+    USING v_user::text, v_room.id;
+
+  RETURN v_room;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.join_room_by_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.join_room_by_code(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.join_room_by_code(text) TO anon;
