@@ -20,7 +20,7 @@ import {
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
 import { playBattleAnimation } from './animator.js';
-import { broadcastGameState } from '../supabase-game.js';
+import { broadcastGameState, sendPlayerAction, subscribeToGameActions } from '../supabase-game.js';
 
 let game = null;
 let draggedUid = null;
@@ -28,6 +28,7 @@ let draggedSource = null; // 'bench' or board position number
 let selectedShopIndex = null;
 let dragJustEnded = false;
 let dragResetTimer = null;
+let unsubscribeActions = null;
 
 // ─── Screen management ────────────────────────────────────────
 
@@ -54,6 +55,10 @@ export function isAutobattlerActive() {
 
 export function exitAutobattler() {
   game = null;
+  if (unsubscribeActions) {
+    unsubscribeActions();
+    unsubscribeActions = null;
+  }
 }
 
 export function startPvpGame(newGame) {
@@ -62,6 +67,56 @@ export function startPvpGame(newGame) {
   draggedSource = null;
   document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
   abScreen()?.classList.remove('hidden');
+
+  if (unsubscribeActions) {
+    unsubscribeActions();
+    unsubscribeActions = null;
+  }
+  if (game?.isOnline && game?.isHost && game?.roomId) {
+    unsubscribeActions = subscribeToGameActions(game.roomId, applyRemoteAction);
+  }
+
+  render();
+}
+
+function applyRemoteAction(action) {
+  if (!game || !game.isHost) return;
+  const player = game.players[action.playerIndex];
+  if (!player) return;
+
+  switch (action.type) {
+    case 'buy':
+      if (buyPiece(player, action.shopIndex)) autoMerge(player);
+      break;
+    case 'sell':
+      sellPiece(player, action.uid);
+      break;
+    case 'moveToBench':
+      if (moveToBench(player, action.pos)) {
+        autoMerge(player);
+      }
+      break;
+    case 'reroll':
+      reroll(player);
+      break;
+    case 'levelup':
+      upgradeShop(player);
+      break;
+    case 'move':
+      if (placeMinion(player, action.uid, action.targetPos)) autoMerge(player);
+      break;
+    case 'ready':
+      player.ready = true;
+      autoMerge(player);
+      if (game.players.every((p) => p.ready)) {
+        resolveCombatPhase(game);
+        startCombatAnimation();
+      }
+      break;
+    default:
+      console.warn('[pvp] unknown action:', action.type);
+  }
+
   render();
 }
 
@@ -519,23 +574,34 @@ function onDrop(e) {
   if (slot) slot?.classList.remove('drag-over');
 
   const bench = e.target.closest && e.target.closest('#ab-bench');
-  const player = game.players[game.myPlayerIndex || 0];
+  const myIndex = game.myPlayerIndex || 0;
+  const player = game.players[myIndex];
 
   if (bench) {
-    // Drop on bench: move from board to bench
     if (typeof draggedSource === 'number') {
-      if (moveToBench(player, draggedSource)) {
+      if (game?.isOnline) {
+        if (!game.isHost) {
+          sendPlayerAction(game.roomId, { type: 'moveToBench', playerIndex: myIndex, pos: draggedSource });
+        }
+      } else if (moveToBench(player, draggedSource)) {
         autoMerge(player);
         render();
       }
     }
+    dragJustEnded = true;
+    if (dragResetTimer) clearTimeout(dragResetTimer);
+    dragResetTimer = setTimeout(() => { dragJustEnded = false; }, 250);
     return;
   }
 
   if (!slot) return;
   const targetPos = parseInt(slot.dataset.pos, 10);
   if (draggedUid) {
-    if (placeMinion(player, draggedUid, targetPos)) {
+    if (game?.isOnline) {
+      if (!game.isHost) {
+        sendPlayerAction(game.roomId, { type: 'move', playerIndex: myIndex, uid: draggedUid, targetPos });
+      }
+    } else if (placeMinion(player, draggedUid, targetPos)) {
       autoMerge(player);
       render();
     }
@@ -569,8 +635,14 @@ export function setupAutobattlerEvents() {
   // Modal buy button
   document.getElementById('shop-detail-buy').addEventListener('click', () => {
     if (selectedShopIndex === null || !game || game.phase !== 'shop') return;
-    if (buyPiece(game.players[game.myPlayerIndex || 0], selectedShopIndex)) {
-      autoMerge(game.players[game.myPlayerIndex || 0]);
+    const myIndex = game.myPlayerIndex || 0;
+    if (game?.isOnline && !game?.isHost) {
+      sendPlayerAction(game.roomId, { type: 'buy', playerIndex: myIndex, shopIndex: selectedShopIndex });
+      closeShopDetail();
+      return;
+    }
+    if (buyPiece(game.players[myIndex], selectedShopIndex)) {
+      autoMerge(game.players[myIndex]);
       closeShopDetail();
       render();
     }
@@ -579,7 +651,12 @@ export function setupAutobattlerEvents() {
   // Reroll
   document.getElementById('ab-reroll').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    if (reroll(game.players[game.myPlayerIndex || 0])) {
+    const myIndex = game.myPlayerIndex || 0;
+    if (game?.isOnline && !game?.isHost) {
+      sendPlayerAction(game.roomId, { type: 'reroll', playerIndex: myIndex });
+      return;
+    }
+    if (reroll(game.players[myIndex])) {
       render();
     }
   });
@@ -587,7 +664,12 @@ export function setupAutobattlerEvents() {
   // Level up
   document.getElementById('ab-levelup').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    if (upgradeShop(game.players[game.myPlayerIndex || 0])) {
+    const myIndex = game.myPlayerIndex || 0;
+    if (game?.isOnline && !game?.isHost) {
+      sendPlayerAction(game.roomId, { type: 'levelup', playerIndex: myIndex });
+      return;
+    }
+    if (upgradeShop(game.players[myIndex])) {
       render();
     }
   });
@@ -595,15 +677,23 @@ export function setupAutobattlerEvents() {
   // Ready
   document.getElementById('ab-ready').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    game.players[game.myPlayerIndex || 0].ready = true;
-    autoMerge(game.players[game.myPlayerIndex || 0]);
-    resolveCombatPhase(game);
-    startCombatAnimation();
+    const myIndex = game.myPlayerIndex || 0;
+    if (game?.isOnline && !game?.isHost) {
+      sendPlayerAction(game.roomId, { type: 'ready', playerIndex: myIndex });
+      return;
+    }
+    game.players[myIndex].ready = true;
+    autoMerge(game.players[myIndex]);
+    if (game.players.every((p) => p.ready)) {
+      resolveCombatPhase(game);
+      startCombatAnimation();
+    }
   });
 
   // Next round (after combat animation)
   document.getElementById('ab-next-round').addEventListener('click', () => {
     if (!game || game.phase !== 'combat') return;
+    if (game?.isOnline && !game?.isHost) return;
     advanceToNextRound(game);
     render();
   });
@@ -654,7 +744,12 @@ export function setupAutobattlerEvents() {
     const minionEl = e.target.closest('.ab-minion');
     if (!minionEl) return;
     const uid = minionEl.dataset.uid;
-    if (sellPiece(game.players[game.myPlayerIndex || 0], uid)) {
+    const myIndex = game.myPlayerIndex || 0;
+    if (game?.isOnline && !game?.isHost) {
+      sendPlayerAction(game.roomId, { type: 'sell', playerIndex: myIndex, uid });
+      return;
+    }
+    if (sellPiece(game.players[myIndex], uid)) {
       render();
     }
   });
@@ -668,8 +763,13 @@ export function setupAutobattlerEvents() {
       const slot = e.target.closest('.ab-board-slot');
       if (slot) {
         const pos = parseInt(slot.dataset.pos, 10);
-        if (moveToBench(game.players[game.myPlayerIndex || 0], pos)) {
-          autoMerge(game.players[game.myPlayerIndex || 0]);
+        const myIndex = game.myPlayerIndex || 0;
+        if (game?.isOnline && !game?.isHost) {
+          sendPlayerAction(game.roomId, { type: 'moveToBench', playerIndex: myIndex, pos });
+          return;
+        }
+        if (moveToBench(game.players[myIndex], pos)) {
+          autoMerge(game.players[myIndex]);
           render();
         }
       }

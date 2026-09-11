@@ -160,7 +160,7 @@ export function createGameFromOnlineRoom(room, myPlayerIndex, isHost, seed = Dat
 
   for (const p of players) {
     startRound(p, 1);
-    if (p.isAI || p.isRemote) {
+    if (p.isAI) {
       aiShopPhase(p);
     }
   }
@@ -297,7 +297,7 @@ export function advanceToNextRound(game) {
   for (const p of game.players) {
     if (p.hp > 0) {
       startRound(p, game.round);
-      if (p.isAI || p.isRemote) {
+      if (p.isAI) {
         aiShopPhase(p);
       }
     }
