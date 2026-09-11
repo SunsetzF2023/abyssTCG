@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`32c7f82`
-  - 房主权威 PVP：在线房间开局并同步 Game 状态给所有客户端
+- **当前最新提交**：`fe06c34`
+  - PVP 远程玩家操作回传（购买/出售/移动/刷新/升级/准备）
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
