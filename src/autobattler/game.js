@@ -257,15 +257,24 @@ export function resolveCombatPhase(game) {
 
     const result = resolveBattle(board1, board2);
 
-    // Grow-buff changes from combat are permanent (Rule C)
+    // Grow and onKill buff changes from combat are permanent
     for (const ev of result.log) {
-      if (ev.type !== 'buff' || ev.subtype !== 'grow') continue;
-      const owner = ev.side === 'attacker' ? p1 : p2;
-      const minion = findMinion(owner, ev.targetUid);
-      if (minion) {
-        minion.attack += ev.atk || 0;
-        minion.health += ev.hp || 0;
-        minion.maxHealth += ev.hp || 0;
+      if (ev.type === 'buff' && (ev.subtype === 'grow' || ev.subtype === 'onKill')) {
+        const owner = ev.side === 'attacker' ? p1 : p2;
+        const minion = findMinion(owner, ev.targetUid);
+        if (minion) {
+          minion.attack += ev.atk || 0;
+          minion.health += ev.hp || 0;
+          minion.maxHealth += ev.hp || 0;
+        }
+      } else if (ev.type === 'onKill' && (ev.atk || ev.hp)) {
+        const owner = ev.side === 'attacker' ? p1 : p2;
+        const minion = findMinion(owner, ev.sourceUid);
+        if (minion) {
+          minion.attack += ev.atk;
+          minion.health += ev.hp;
+          minion.maxHealth += ev.hp;
+        }
       }
     }
 

@@ -186,6 +186,8 @@ function triggerOnKill(state, killer, ownerSide) {
   if (!killer.ability || killer.ability.type !== 'onKill') return;
   const ab = killer.ability;
   const killerPos = posOf(state[ownerSide].board, killer);
+  let atk = ab.atk || 0;
+  let hp = ab.hp || 0;
   switch (ab.subtype) {
     case 'buffSelf':
       killer.attack += ab.atk;
@@ -196,9 +198,11 @@ function triggerOnKill(state, killer, ownerSide) {
       killer.attack += 1;
       killer.health += 1;
       killer.maxHealth += 1;
+      atk = 1;
+      hp = 1;
       break;
     case 'buffAllies':
-      buffAll(state, ownerSide, killer, ab);
+      buffAll(state, ownerSide, killer, ab, 'onKill');
       break;
   }
   logEvent(state, {
@@ -208,8 +212,8 @@ function triggerOnKill(state, killer, ownerSide) {
     sourceName: killer.name,
     sourcePos: killerPos,
     subtype: ab.subtype,
-    atk: ab.atk,
-    hp: ab.hp,
+    atk,
+    hp,
   });
 }
 
@@ -327,7 +331,7 @@ function triggerDeathrattle(state, dyingMinion, ownerSide) {
   }
 }
 
-function buffAll(state, side, m, ab) {
+function buffAll(state, side, m, ab, subtype = 'battlecry') {
   const board = state[side].board;
   board.forEach((n) => {
     if (n && n.health > 0 && n.uid !== m.uid) {
@@ -342,7 +346,7 @@ function buffAll(state, side, m, ab) {
         targetPos: posOf(board, n),
         atk: ab.atk,
         hp: ab.hp,
-        subtype: 'battlecry',
+        subtype,
       });
     }
   });
