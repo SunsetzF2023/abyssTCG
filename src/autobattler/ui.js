@@ -42,8 +42,8 @@ export function startAutobattler() {
   };
   draggedUid = null;
   draggedSource = null;
-  document.querySelectorAll('.screen').forEach((s) => s.classList.add('hidden'));
-  abScreen().classList.remove('hidden');
+  document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
+  abScreen()?.classList.remove('hidden');
   render();
 }
 
@@ -66,22 +66,22 @@ function render() {
     return;
   }
 
-  document.getElementById('ab-lobby').classList.add('hidden');
-  document.getElementById('ab-battle-area').classList.remove('hidden');
+  document.getElementById('ab-lobby')?.classList.add('hidden');
+  document.getElementById('ab-battle-area')?.classList.remove('hidden');
 
   renderStandings();
 
   if (game.phase === 'combat') {
     // During combat animation, only show the battle boards (handled by animator)
-    document.getElementById('ab-bench-area').classList.add('hidden');
-    document.getElementById('ab-shop-area').classList.add('hidden');
-    document.getElementById('ab-player-info').classList.add('hidden');
+    document.getElementById('ab-bench-area')?.classList.add('hidden');
+    document.getElementById('ab-shop-area')?.classList.add('hidden');
+    document.getElementById('ab-player-info')?.classList.add('hidden');
     return;
   }
 
-  document.getElementById('ab-bench-area').classList.remove('hidden');
-  document.getElementById('ab-shop-area').classList.remove('hidden');
-  document.getElementById('ab-player-info').classList.remove('hidden');
+  document.getElementById('ab-bench-area')?.classList.remove('hidden');
+  document.getElementById('ab-shop-area')?.classList.remove('hidden');
+  document.getElementById('ab-player-info')?.classList.remove('hidden');
   renderBoards();
   renderBench();
   renderShop();
@@ -97,13 +97,13 @@ function renderLobby() {
   const room = game.room;
   if (!lobby || !room) return;
 
-  document.getElementById('ab-battle-area').classList.add('hidden');
-  document.getElementById('ab-bench-area').classList.add('hidden');
-  document.getElementById('ab-shop-area').classList.add('hidden');
-  document.getElementById('ab-player-info').classList.add('hidden');
-  document.getElementById('ab-combat-log').classList.add('hidden');
-  document.getElementById('ab-combat-controls').classList.add('hidden');
-  lobby.classList.remove('hidden');
+  document.getElementById('ab-battle-area')?.classList.add('hidden');
+  document.getElementById('ab-bench-area')?.classList.add('hidden');
+  document.getElementById('ab-shop-area')?.classList.add('hidden');
+  document.getElementById('ab-player-info')?.classList.add('hidden');
+  document.getElementById('ab-combat-log')?.classList.add('hidden');
+  document.getElementById('ab-combat-controls')?.classList.add('hidden');
+  lobby?.classList.remove('hidden');
 
   const slotsHtml = room.slots.map((slot) => {
     const label = getSlotLabel(slot);
@@ -341,16 +341,16 @@ function openDetailModal(item, options = {}) {
     const canAfford = game.players[0].gold >= BUY_COST;
     buyBtn.textContent = `购买 (${BUY_COST}💰)`;
     buyBtn.disabled = !canAfford;
-    buyBtn.classList.remove('hidden');
+    buyBtn?.classList.remove('hidden');
   } else {
-    buyBtn.classList.add('hidden');
+    buyBtn?.classList.add('hidden');
   }
-  document.getElementById('shop-detail-modal').classList.remove('hidden');
+  document.getElementById('shop-detail-modal')?.classList.remove('hidden');
 }
 
 function closeShopDetail() {
   selectedShopIndex = null;
-  document.getElementById('shop-detail-modal').classList.add('hidden');
+  document.getElementById('shop-detail-modal')?.classList.add('hidden');
 }
 
 function renderPlayerInfo() {
@@ -373,7 +373,7 @@ function renderPlayerInfo() {
 
 function renderCombatResults() {
   const logBox = document.getElementById('ab-combat-log');
-  logBox.classList.remove('hidden');
+  logBox?.classList.remove('hidden');
 
   const player = game.players[0];
   const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
@@ -434,8 +434,8 @@ function startCombatAnimation() {
     return;
   }
 
-  document.getElementById('ab-combat-log').classList.add('hidden');
-  document.getElementById('ab-combat-controls').classList.add('hidden');
+  document.getElementById('ab-combat-log')?.classList.add('hidden');
+  document.getElementById('ab-combat-controls')?.classList.add('hidden');
   render();
 
   const humanSide = myBattle.player1 === player.name ? 'attacker' : 'defender';
@@ -443,14 +443,14 @@ function startCombatAnimation() {
 }
 
 function onBattleAnimationDone() {
-  document.getElementById('ab-combat-log').classList.remove('hidden');
-  document.getElementById('ab-combat-controls').classList.remove('hidden');
+  document.getElementById('ab-combat-log')?.classList.remove('hidden');
+  document.getElementById('ab-combat-controls')?.classList.remove('hidden');
   renderCombatResults();
 }
 
 function showAbGameOver(text) {
   document.getElementById('game-over-text').textContent = text;
-  document.getElementById('game-over-overlay').classList.remove('hidden');
+  document.getElementById('game-over-overlay')?.classList.remove('hidden');
 }
 
 // ─── Drag and drop ───────────────────────────────────────────
@@ -467,12 +467,12 @@ function onDragStart(e) {
   draggedSource = slot ? parseInt(slot.dataset.pos, 10) : 'bench';
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', uid);
-  card.classList.add('dragging');
+  card?.classList.add('dragging');
 }
 
 function onDragEnd(e) {
   const card = e.target.closest('.ab-minion');
-  if (card) card.classList.remove('dragging');
+  if (card) card?.classList.remove('dragging');
   draggedUid = null;
   draggedSource = null;
   if (dragResetTimer) clearTimeout(dragResetTimer);
@@ -485,19 +485,19 @@ function onDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   const slot = e.target.closest('.ab-board-slot');
-  if (slot) slot.classList.add('drag-over');
+  if (slot) slot?.classList.add('drag-over');
 }
 
 function onDragLeave(e) {
   const slot = e.target.closest('.ab-board-slot');
-  if (slot) slot.classList.remove('drag-over');
+  if (slot) slot?.classList.remove('drag-over');
 }
 
 function onDrop(e) {
   if (!game || game.phase !== 'shop') return;
   e.preventDefault();
   const slot = e.target.closest('.ab-board-slot');
-  if (slot) slot.classList.remove('drag-over');
+  if (slot) slot?.classList.remove('drag-over');
 
   const bench = e.target.closest && e.target.closest('#ab-bench');
   const player = game.players[0];
@@ -530,8 +530,8 @@ export function setupAutobattlerEvents() {
   // Back button
   document.getElementById('ab-back').addEventListener('click', () => {
     exitAutobattler();
-    document.getElementById('screen-autobattler').classList.add('hidden');
-    document.getElementById('screen-menu').classList.remove('hidden');
+    document.getElementById('screen-autobattler')?.classList.add('hidden');
+    document.getElementById('screen-menu')?.classList.remove('hidden');
   });
 
   // Shop piece click — open detail modal

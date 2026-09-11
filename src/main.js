@@ -30,7 +30,7 @@ if (document.getElementById('ab-auth-btn')) {
 
 document.getElementById('mode-classic').addEventListener('click', () => {
   document.getElementById('mode-select')?.classList.add('hidden');
-  document.getElementById('faction-grid').classList.remove('hidden');
+  document.getElementById('faction-grid')?.classList.remove('hidden');
 });
 
 document.getElementById('mode-autobattler').addEventListener('click', () => {

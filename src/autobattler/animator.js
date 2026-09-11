@@ -117,14 +117,14 @@ function showFloatingText(card, text, colorClass = '') {
 
 function flashCard(card, flashClass, duration = 250) {
   if (!card) return;
-  card.classList.add(flashClass);
-  setTimeout(() => card.classList.remove(flashClass), duration);
+  card?.classList.add(flashClass);
+  setTimeout(() => card?.classList.remove(flashClass), duration);
 }
 
 function lungeCard(card) {
   if (!card) return;
-  card.classList.add('ab-lunge');
-  setTimeout(() => card.classList.remove('ab-lunge'), 250);
+  card?.classList.add('ab-lunge');
+  setTimeout(() => card?.classList.remove('ab-lunge'), 250);
 }
 
 function leapCard(attacker, target) {
@@ -132,7 +132,7 @@ function leapCard(attacker, target) {
   const r1 = attacker.getBoundingClientRect();
   const r2 = target.getBoundingClientRect();
   const clone = attacker.cloneNode(true);
-  clone.classList.add('ab-leap-clone', 'ab-combat-minion');
+  clone?.classList.add('ab-leap-clone', 'ab-combat-minion');
   clone.style.position = 'fixed';
   clone.style.left = `${r1.left}px`;
   clone.style.top = `${r1.top}px`;
@@ -176,8 +176,8 @@ function createShards(card) {
 }
 
 function markDead(card) {
-  if (!card || card.classList.contains('ab-dead')) return;
-  card.classList.add('ab-dead');
+  if (!card || card?.classList.contains('ab-dead')) return;
+  card?.classList.add('ab-dead');
   updateHp(card, 0);
   createShards(card);
 }
@@ -202,8 +202,8 @@ function showSummoned(ev) {
   slot.innerHTML = createCombatCard(m, side);
   const card = slot.querySelector('.ab-combat-minion');
   if (card) {
-    card.classList.add('ab-summon-in');
-    setTimeout(() => card.classList.remove('ab-summon-in'), 500);
+    card?.classList.add('ab-summon-in');
+    setTimeout(() => card?.classList.remove('ab-summon-in'), 500);
   }
 }
 
@@ -288,12 +288,12 @@ async function playBuffEvent(ev) {
   const atkEl = target.querySelector('.ab-minion-stats .atk');
   const hpEl = target.querySelector('.ab-minion-stats .hp');
   if (ev.atk) {
-    atkEl.classList.add('ab-stat-buffed');
-    setTimeout(() => atkEl.classList.remove('ab-stat-buffed'), 700);
+    atkEl?.classList.add('ab-stat-buffed');
+    setTimeout(() => atkEl?.classList.remove('ab-stat-buffed'), 700);
   }
   if (ev.hp) {
-    hpEl.classList.add('ab-stat-buffed');
-    setTimeout(() => hpEl.classList.remove('ab-stat-buffed'), 700);
+    hpEl?.classList.add('ab-stat-buffed');
+    setTimeout(() => hpEl?.classList.remove('ab-stat-buffed'), 700);
   }
   await sleep(300);
 }
@@ -322,12 +322,12 @@ async function playDebuffEvent(ev) {
   const atkEl = target.querySelector('.ab-minion-stats .atk');
   const hpEl = target.querySelector('.ab-minion-stats .hp');
   if (ev.atk) {
-    atkEl.classList.add('ab-stat-debuffed');
-    setTimeout(() => atkEl.classList.remove('ab-stat-debuffed'), 700);
+    atkEl?.classList.add('ab-stat-debuffed');
+    setTimeout(() => atkEl?.classList.remove('ab-stat-debuffed'), 700);
   }
   if (ev.hp) {
-    hpEl.classList.add('ab-stat-debuffed');
-    setTimeout(() => hpEl.classList.remove('ab-stat-debuffed'), 700);
+    hpEl?.classList.add('ab-stat-debuffed');
+    setTimeout(() => hpEl?.classList.remove('ab-stat-debuffed'), 700);
   }
   await sleep(300);
 }

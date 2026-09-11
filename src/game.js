@@ -23,7 +23,7 @@ const screens = {
 };
 
 function showScreen(name) {
-  Object.entries(screens).forEach(([k, el]) => el.classList.toggle('hidden', k !== name));
+  Object.entries(screens).forEach(([k, el]) => el?.classList.toggle('hidden', k !== name));
 }
 
 // ─── Menu screen: faction select ───
@@ -84,8 +84,8 @@ function renderHero(side) {
   document.getElementById(`hero-${side}-deck`).textContent = `牌库: ${p.deck.length}`;
   const portrait = document.getElementById(`hero-${side}-portrait`);
   portrait.style.borderColor = faction.color;
-  portrait.classList.toggle('targetable', side === 'ai' && !!selectedAttackerUid);
-  portrait.classList.toggle('spell-targetable', false);
+  portrait?.classList.toggle('targetable', side === 'ai' && !!selectedAttackerUid);
+  portrait?.classList.toggle('spell-targetable', false);
 }
 
 function renderBoard(side) {
@@ -222,12 +222,12 @@ function onEndTurnClick() {
 
 function showGameOver(text) {
   const overlay = document.getElementById('game-over-overlay');
-  overlay.classList.remove('hidden');
+  overlay?.classList.remove('hidden');
   document.getElementById('game-over-text').textContent = text;
 }
 
 function backToMenu() {
-  document.getElementById('game-over-overlay').classList.add('hidden');
+  document.getElementById('game-over-overlay')?.classList.add('hidden');
   showScreen('menu');
   renderMenu();
 }
