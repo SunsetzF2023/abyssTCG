@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`631d531`
-  - 按规范加固卖出机制（阶段校验/金币上限/远程非商店阶段防护）
+- **当前最新提交**：`07b29d2`
+  - 击杀（onKill）属性增益战后永久保留
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
