@@ -59,6 +59,7 @@
 - **阵营**：neutral、ghost、warrior、starborne、mech、nature、beast、dragon（各 6 张）
 - **星级/tier**：1~6 阶，每阶 8 张，每个阵营每个 tier 1 张
 - **token 随从**：见 `TOKEN_PIECES`
+- 已新增约 112 条原始咒术牌数据到 `src/autobattler/spells.js`（效果逻辑尚未实现）
 - 用户计划后续新增咒术牌与更多随从
 
 ## 6. 经济与商店等级
