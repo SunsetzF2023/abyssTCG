@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`b3b04c9`
-  - 护盾橙色薄膜与护盾破碎动画
+- **当前最新提交**：`4fb8977`
+  - 修复在线 PVP 加入房间（服务器端 join_room_by_code）
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
