@@ -50,6 +50,8 @@
 | `src/autobattler/room.js` | 本地 8 人房间大厅（8 插槽、房主、添加/踢出/一键补全 AI） |
 | `src/autobattler/animator.js` | 战斗回放与动画（卡牌飞跃、伤害数字、治疗/增益/减益、死亡碎片、召唤） |
 | `src/supabase-config.js` / `src/supabase-auth.js` | Supabase 客户端、GitHub/匿名登录 |
+| `supabase/schema.sql` | Supabase 实时 PVP 表结构（profiles、rooms、invitations） |
+| `src/supabase-room.js` | Supabase 房间/邀请/在线列表/订阅客户端 |
 | `tests/autobattler.test.js` / `tests/autobattler_shop.test.js` / `tests/engine.test.js` | 测试 |
 
 ## 5. 当前卡池
@@ -123,5 +125,6 @@
 
 - 用户将新增咒术牌与更多随从牌，需扩展 `PIECES` 数据模型或新增 `type` 字段区分 `minion`/`spell`。
 - 咒术牌在商店、手牌/备战席、战斗中的使用逻辑需进一步设计。
-- 8 人房间系统：8 个固定插槽（`SLOT_EMPTY`/`SLOT_PLAYER`/`SLOT_AI`），房主可添加 AI、踢人、一键补全、启动游戏。
+- 8 人房间系统：本地已实现 8 插槽、房主、添加/踢出/一键补全 AI、开始游戏；Supabase 在线部分已写 schema 与 `supabase-room.js`。
 - 在线 PVP 与 AI 同构处理：真人 vs 真人/AI vs AI/真人 vs AI 的匹配与战斗广播/纯结算流程。
+- 下一步：把 `supabase-room.js` 的创建/加入/邀请 UI 接入主菜单和房间大厅。
