@@ -3,11 +3,11 @@ import { PIECES, TOKEN_PIECES } from '../src/autobattler/pieces.js';
 import { createMinion, resolveBattle, makeBoard } from '../src/autobattler/battle.js';
 
 describe('piece database', () => {
-  it('has 48 pieces across 6 tiers', () => {
-    expect(PIECES.length).toBe(48);
+  it('has 47 pieces across 6 tiers', () => {
+    expect(PIECES.length).toBe(47);
     for (let t = 1; t <= 6; t++) {
       const tierPieces = PIECES.filter((p) => p.tier === t);
-      expect(tierPieces.length).toBe(8); // one per race per tier
+      expect(tierPieces.length).toBe(t === 2 ? 7 : 8); // one per race per tier, nature t2 removed
     }
   });
 

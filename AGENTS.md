@@ -54,7 +54,7 @@
 
 ## 5. 当前卡池
 
-- **总卡牌**：48 张（全部随从，0 咒术）
+- **总卡牌**：47 张（全部随从，0 咒术；已移除「花匠」）
 - **阵营**：neutral、ghost、warrior、starborne、mech、nature、beast、dragon（各 6 张）
 - **星级/tier**：1~6 阶，每阶 8 张，每个阵营每个 tier 1 张
 - **token 随从**：见 `TOKEN_PIECES`

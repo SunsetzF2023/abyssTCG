@@ -117,11 +117,6 @@ export const PIECES = [
     ability: { type: 'deathrattle', subtype: 'summon', count: 2, token: 't1_spark_drone' },
   },
   {
-    id: 't2_gardener', name: '花匠', tier: 2, race: 'nature',
-    attack: 2, health: 3,
-    ability: { type: 'meditate', subtype: 'healAdjacentAllies', value: 2 },
-  },
-  {
     id: 't2_hyena', name: '鬣狗', tier: 2, race: 'beast',
     attack: 3, health: 2,
     ability: { type: 'firstStrike' },
