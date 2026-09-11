@@ -182,16 +182,45 @@ export function createGameFromOnlineRoom(room, myPlayerIndex, isHost, seed = Dat
 
 // ─── Combat pairing ────────────────────────────────────────────
 
-export function pairPlayers(players) {
+function roundRobinPairs(players, round) {
+  const n = players.length;
+  const r = (round - 1) % (n - 1);
+  const fixed = n - 1;
+  const order = [];
+  for (let i = 0; i < fixed; i++) {
+    order.push((i + r) % fixed);
+  }
+  const pairs = [];
+  for (let i = 0; i < (fixed - 1) / 2; i++) {
+    const a = order[i];
+    const b = order[fixed - 1 - i];
+    pairs.push([players[a], players[b]]);
+  }
+  const middle = order[(fixed - 1) / 2];
+  pairs.push([players[middle], players[fixed]]);
+  return pairs;
+}
+
+export function pairPlayers(players, round = 0, isOnline = false) {
   const alive = players.filter((p) => p.hp > 0);
+  if (alive.length % 2 === 1) {
+    const shuffled = [...alive].sort(() => Math.random() - 0.5);
+    const pairs = [];
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      pairs.push([shuffled[i], shuffled[i + 1]]);
+    }
+    pairs.push([shuffled[shuffled.length - 1], null]);
+    return pairs;
+  }
+
+  if (isOnline && round > 0 && alive.length === players.length) {
+    return roundRobinPairs(players, round);
+  }
+
   const shuffled = [...alive].sort(() => Math.random() - 0.5);
   const pairs = [];
   for (let i = 0; i < shuffled.length - 1; i += 2) {
     pairs.push([shuffled[i], shuffled[i + 1]]);
-  }
-  // Odd player out: fights a "ghost" (no damage taken, but no damage dealt)
-  if (shuffled.length % 2 === 1) {
-    pairs.push([shuffled[shuffled.length - 1], null]);
   }
   return pairs;
 }
@@ -207,14 +236,16 @@ export function resolveCombatPhase(game) {
   game.phase = 'combat';
   game.battles = [];
 
-  const pairs = pairPlayers(game.players);
+  const pairs = pairPlayers(game.players, game.round, game.isOnline);
 
   for (const [p1, p2] of pairs) {
     if (!p2) {
       // Odd player out: no battle, no damage
       game.battles.push({
         player1: p1.name,
+        player1Id: p1.id || p1.name,
         player2: '(ghost)',
+        player2Id: null,
         result: { winner: 'attacker', survivors: getCombatBoard(p1), damageDealt: 0 },
         ghost: true,
       });
@@ -240,7 +271,9 @@ export function resolveCombatPhase(game) {
 
     game.battles.push({
       player1: p1.name,
+      player1Id: p1.id || p1.name,
       player2: p2.name,
+      player2Id: p2.id || p2.name,
       result,
       ghost: false,
     });

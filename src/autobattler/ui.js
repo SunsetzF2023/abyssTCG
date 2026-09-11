@@ -42,6 +42,7 @@ export function startAutobattler() {
     room,
     host: room.host.name,
   };
+  battleAnimating = false;
   draggedUid = null;
   draggedSource = null;
   document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
@@ -63,6 +64,7 @@ export function exitAutobattler() {
 
 export function startPvpGame(newGame) {
   game = newGame;
+  battleAnimating = false;
   draggedUid = null;
   draggedSource = null;
   document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
@@ -110,7 +112,6 @@ function applyRemoteAction(action) {
       autoMerge(player);
       if (game.players.every((p) => p.ready)) {
         resolveCombatPhase(game);
-        startCombatAnimation();
       }
       break;
     default:
@@ -141,6 +142,7 @@ function render() {
     document.getElementById('ab-bench-area')?.classList.add('hidden');
     document.getElementById('ab-shop-area')?.classList.add('hidden');
     document.getElementById('ab-player-info')?.classList.add('hidden');
+    startCombatAnimation();
     broadcastIfHost();
     return;
   }
@@ -498,25 +500,29 @@ function renderCombatResults() {
   }
 }
 
+let battleAnimating = false;
+
 function startCombatAnimation() {
+  if (battleAnimating) return;
   const player = game.players[game.myPlayerIndex || 0];
-  const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
+  const me = player.id || player.name;
+  const myBattle = game.battles.find((b) => b.player1Id === me || b.player2Id === me);
 
   if (!myBattle || myBattle.ghost) {
-    // Ghost round: skip animation, show result immediately
     onBattleAnimationDone();
     return;
   }
 
+  battleAnimating = true;
   document.getElementById('ab-combat-log')?.classList.add('hidden');
   document.getElementById('ab-combat-controls')?.classList.add('hidden');
-  render();
 
-  const humanSide = myBattle.player1 === player.name ? 'attacker' : 'defender';
+  const humanSide = myBattle.player1Id === me ? 'attacker' : 'defender';
   playBattleAnimation(myBattle.result, humanSide, onBattleAnimationDone);
 }
 
 function onBattleAnimationDone() {
+  battleAnimating = false;
   document.getElementById('ab-combat-log')?.classList.remove('hidden');
   document.getElementById('ab-combat-controls')?.classList.remove('hidden');
   renderCombatResults();
@@ -686,8 +692,8 @@ export function setupAutobattlerEvents() {
     autoMerge(game.players[myIndex]);
     if (game.players.every((p) => p.ready)) {
       resolveCombatPhase(game);
-      startCombatAnimation();
     }
+    render();
   });
 
   // Next round (after combat animation)
