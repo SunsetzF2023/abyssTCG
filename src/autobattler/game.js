@@ -141,6 +141,45 @@ export function createGameFromRoom(room, seed = Date.now()) {
   };
 }
 
+export function createGameFromOnlineRoom(room, myPlayerIndex, isHost, seed = Date.now()) {
+  setSeed(seed);
+  const players = [];
+  for (let i = 0; i < 8; i++) {
+    const slot = room[`slot_${i}`];
+    const isAI = slot === 'AI_ROBOT';
+    const isRemote = !isAI && i !== myPlayerIndex;
+    const isMe = !isAI && i === myPlayerIndex;
+    let name;
+    if (isAI) name = `AI-${i}`;
+    else if (isMe) name = '你';
+    else name = `玩家#${slot.substring(0, 6)}`;
+    const player = createPlayer(name, isAI, isRemote);
+    if (!isAI) player.id = slot;
+    players.push(player);
+  }
+
+  for (const p of players) {
+    startRound(p, 1);
+    if (p.isAI || p.isRemote) {
+      aiShopPhase(p);
+    }
+  }
+
+  return {
+    players,
+    round: 1,
+    phase: 'shop',
+    battles: [],
+    log: [],
+    winner: null,
+    isOnline: true,
+    isHost,
+    myPlayerIndex,
+    roomId: room.id,
+    host_id: room.host_id,
+  };
+}
+
 // ─── Combat pairing ────────────────────────────────────────────
 
 export function pairPlayers(players) {
@@ -258,7 +297,7 @@ export function advanceToNextRound(game) {
   for (const p of game.players) {
     if (p.hp > 0) {
       startRound(p, game.round);
-      if (p.isAI) {
+      if (p.isAI || p.isRemote) {
         aiShopPhase(p);
       }
     }

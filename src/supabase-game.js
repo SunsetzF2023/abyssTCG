@@ -10,7 +10,7 @@ import { supabaseClient } from './supabase-config.js';
 
 export function makeGameChannel(roomId) {
   const channelName = `game:${roomId}`;
-  return supabaseClient.channel(channelName, { configs: { broadcast: { self: true } } });
+  return supabaseClient.channel(channelName, { config: { broadcast: { self: true } } });
 }
 
 export function subscribeToGameState(roomId, onState) {

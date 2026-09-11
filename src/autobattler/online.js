@@ -9,7 +9,10 @@ import {
   createRoom, joinRoomByCode, listOnlinePlayers, sendInvite, acceptInvite, rejectInvite,
   subscribeToInvites, subscribeToRoom, fillRoomWithAI, setRoomStatus, ensureProfile,
 } from '../supabase-room.js';
+import { broadcastGameState, subscribeToGameState } from '../supabase-game.js';
 import { getCurrentUser } from '../supabase-auth.js';
+import { createGameFromOnlineRoom } from './game.js';
+import { startPvpGame } from './ui.js';
 
 const menuScreen = () => document.getElementById('screen-pvp-menu');
 const menuView = () => document.getElementById('ab-pvp-menu');
@@ -17,8 +20,10 @@ const lobbyView = () => document.getElementById('ab-pvp-lobby');
 
 let currentRoom = null;
 let currentRoomCode = null;
+let currentMyIndex = null;
 let unsubscribeRoom = null;
 let unsubscribeInvites = null;
+let unsubscribeGame = null;
 let onlineList = [];
 
 export function initPvpMenu() {
@@ -50,20 +55,39 @@ function bindOnce(id, event, handler) {
   document.getElementById(id).addEventListener(event, handler);
 }
 
+function getMySlotIndex(room) {
+  const user = getCurrentUser();
+  if (!user || !room) return null;
+  for (let i = 0; i < 8; i++) {
+    if (room[`slot_${i}`] === user.id) return i;
+  }
+  return null;
+}
+
 function showMenuView() {
   menuView()?.classList.remove('hidden');
   lobbyView()?.classList.add('hidden');
+  cleanupSubscriptions();
+  currentRoom = null;
+  currentRoomCode = null;
+  currentMyIndex = null;
+}
+
+function cleanupSubscriptions() {
   if (unsubscribeRoom) {
     unsubscribeRoom();
     unsubscribeRoom = null;
   }
-  currentRoom = null;
-  currentRoomCode = null;
+  if (unsubscribeGame) {
+    unsubscribeGame();
+    unsubscribeGame = null;
+  }
 }
 
 function showLobbyView(room, code) {
   currentRoom = room;
   currentRoomCode = code;
+  currentMyIndex = getMySlotIndex(room);
   menuView()?.classList.add('hidden');
   lobbyView()?.classList.remove('hidden');
   document.getElementById('ab-pvp-room-code').textContent = `房间码：${code}`;
@@ -72,7 +96,32 @@ function showLobbyView(room, code) {
   if (unsubscribeRoom) unsubscribeRoom();
   unsubscribeRoom = subscribeToRoom(room.id, (updatedRoom) => {
     currentRoom = updatedRoom;
+    currentMyIndex = getMySlotIndex(updatedRoom);
+    if (updatedRoom.status === 'playing') {
+      // game state will come through the broadcast channel
+    }
     renderPvpLobby(updatedRoom);
+  });
+
+  if (unsubscribeGame) unsubscribeGame();
+  unsubscribeGame = subscribeToGameState(room.id, (state) => {
+    const user = getCurrentUser();
+    if (!user || !state) return;
+    // Host already has the live game; clients receive the broadcast
+    if (user.id === state.host_id) return;
+
+    const myIndex = state.players.findIndex((p) => p.id === user.id);
+    if (myIndex === -1) return;
+
+    state.myPlayerIndex = myIndex;
+    state.isHost = false;
+    state.players.forEach((p, i) => {
+      p.isRemote = i !== myIndex && !p.isAI;
+    });
+    state.players[myIndex].name = '你';
+    state.players[myIndex].isRemote = false;
+
+    startPvpGame(state);
   });
 }
 
@@ -107,20 +156,31 @@ async function onFillAI() {
 }
 
 async function onStartGame() {
-  if (!currentRoom) return;
+  if (!currentRoom || currentMyIndex === null) return;
+  const user = getCurrentUser();
+  if (!user || user.id !== currentRoom.host_id) {
+    alert('只有房主能开始游戏');
+    return;
+  }
+
+  const allFilled = Array.from({ length: 8 }, (_, i) => currentRoom[`slot_${i}`] !== 'EMPTY').every(Boolean);
+  if (!allFilled) {
+    alert('座位未满，无法开始');
+    return;
+  }
+
   try {
-    await setRoomStatus(currentRoom.id, 'loading');
-    alert('房主已启动游戏，PVP 游戏循环尚未接入');
+    const game = createGameFromOnlineRoom(currentRoom, currentMyIndex, true);
+    await setRoomStatus(currentRoom.id, 'playing');
+    await broadcastGameState(currentRoom.id, game);
+    startPvpGame(game);
   } catch (e) {
-    alert(`启动失败：${e.message}`);
+    alert(`启动游戏失败：${e.message}`);
   }
 }
 
 function backToMenu() {
-  if (unsubscribeRoom) {
-    unsubscribeRoom();
-    unsubscribeRoom = null;
-  }
+  cleanupSubscriptions();
   document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
   document.getElementById('screen-menu')?.classList.remove('hidden');
 }
@@ -246,8 +306,7 @@ function renderPvpLobby(room) {
     `;
   }).join('');
 
-  const allFilled = Array.from({ length: 8 }, (_, i) => room[`slot_${i}`] !== 'EMPTY')
-    .every(Boolean);
+  const allFilled = Array.from({ length: 8 }, (_, i) => room[`slot_${i}`] !== 'EMPTY').every(Boolean);
   startBtn.disabled = !allFilled || !isHost;
 
   if (!isHost) {

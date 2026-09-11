@@ -20,6 +20,7 @@ import {
 } from './shop.js';
 import { RACE_INFO } from './pieces.js';
 import { playBattleAnimation } from './animator.js';
+import { broadcastGameState } from '../supabase-game.js';
 
 let game = null;
 let draggedUid = null;
@@ -55,6 +56,15 @@ export function exitAutobattler() {
   game = null;
 }
 
+export function startPvpGame(newGame) {
+  game = newGame;
+  draggedUid = null;
+  draggedSource = null;
+  document.querySelectorAll('.screen').forEach((s) => s?.classList.add('hidden'));
+  abScreen()?.classList.remove('hidden');
+  render();
+}
+
 // ─── Rendering ───────────────────────────────────────────────
 
 function render() {
@@ -76,6 +86,7 @@ function render() {
     document.getElementById('ab-bench-area')?.classList.add('hidden');
     document.getElementById('ab-shop-area')?.classList.add('hidden');
     document.getElementById('ab-player-info')?.classList.add('hidden');
+    broadcastIfHost();
     return;
   }
 
@@ -89,6 +100,14 @@ function render() {
 
   if (game.phase === 'combat' || game.phase === 'gameover') {
     renderCombatResults();
+  }
+
+  broadcastIfHost();
+}
+
+function broadcastIfHost() {
+  if (game?.isOnline && game?.isHost) {
+    broadcastGameState(game).catch((e) => console.error('[pvp] broadcast failed:', e));
   }
 }
 
@@ -181,7 +200,7 @@ function renderStandings() {
 }
 
 function renderBoards() {
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   renderBoardRow('ab-player-front', player.board, 0, 3);
   renderBoardRow('ab-player-back', player.board, 3, 6);
   renderBench();
@@ -272,13 +291,13 @@ function abilityLabel(ability) {
 
 function renderBench() {
   const container = document.getElementById('ab-bench');
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   container.innerHTML = player.bench.map((m) => minionCard(m, true)).join('');
 }
 
 function renderShop() {
   const container = document.getElementById('ab-shop');
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   const isShopPhase = game.phase === 'shop';
   const levelInfo = getLevelInfo(player.level);
   const upgradeCost = levelInfo.xpNeeded === Infinity ? 0 : Math.max(0, levelInfo.xpNeeded - player.xp);
@@ -308,7 +327,7 @@ function renderShop() {
 
 function openShopDetail(index) {
   if (!game || game.phase !== 'shop') return;
-  const piece = game.players[0].shop[index];
+  const piece = game.players[game.myPlayerIndex || 0].shop[index];
   if (!piece) return;
   selectedShopIndex = index;
   openDetailModal(piece, { shopIndex: index });
@@ -338,7 +357,7 @@ function openDetailModal(item, options = {}) {
   `;
 
   if (options.shopIndex !== undefined) {
-    const canAfford = game.players[0].gold >= BUY_COST;
+    const canAfford = game.players[game.myPlayerIndex || 0].gold >= BUY_COST;
     buyBtn.textContent = `购买 (${BUY_COST}💰)`;
     buyBtn.disabled = !canAfford;
     buyBtn?.classList.remove('hidden');
@@ -354,7 +373,7 @@ function closeShopDetail() {
 }
 
 function renderPlayerInfo() {
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   const nextRound = game.round + 1;
   const income = calculateIncome(nextRound);
   const levelInfo = getLevelInfo(player.level);
@@ -375,7 +394,7 @@ function renderCombatResults() {
   const logBox = document.getElementById('ab-combat-log');
   logBox?.classList.remove('hidden');
 
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
 
   let html = '';
@@ -425,7 +444,7 @@ function renderCombatResults() {
 }
 
 function startCombatAnimation() {
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
   const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
 
   if (!myBattle || myBattle.ghost) {
@@ -500,7 +519,7 @@ function onDrop(e) {
   if (slot) slot?.classList.remove('drag-over');
 
   const bench = e.target.closest && e.target.closest('#ab-bench');
-  const player = game.players[0];
+  const player = game.players[game.myPlayerIndex || 0];
 
   if (bench) {
     // Drop on bench: move from board to bench
@@ -550,8 +569,8 @@ export function setupAutobattlerEvents() {
   // Modal buy button
   document.getElementById('shop-detail-buy').addEventListener('click', () => {
     if (selectedShopIndex === null || !game || game.phase !== 'shop') return;
-    if (buyPiece(game.players[0], selectedShopIndex)) {
-      autoMerge(game.players[0]);
+    if (buyPiece(game.players[game.myPlayerIndex || 0], selectedShopIndex)) {
+      autoMerge(game.players[game.myPlayerIndex || 0]);
       closeShopDetail();
       render();
     }
@@ -560,7 +579,7 @@ export function setupAutobattlerEvents() {
   // Reroll
   document.getElementById('ab-reroll').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    if (reroll(game.players[0])) {
+    if (reroll(game.players[game.myPlayerIndex || 0])) {
       render();
     }
   });
@@ -568,7 +587,7 @@ export function setupAutobattlerEvents() {
   // Level up
   document.getElementById('ab-levelup').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    if (upgradeShop(game.players[0])) {
+    if (upgradeShop(game.players[game.myPlayerIndex || 0])) {
       render();
     }
   });
@@ -576,8 +595,8 @@ export function setupAutobattlerEvents() {
   // Ready
   document.getElementById('ab-ready').addEventListener('click', () => {
     if (!game || game.phase !== 'shop') return;
-    game.players[0].ready = true;
-    autoMerge(game.players[0]);
+    game.players[game.myPlayerIndex || 0].ready = true;
+    autoMerge(game.players[game.myPlayerIndex || 0]);
     resolveCombatPhase(game);
     startCombatAnimation();
   });
@@ -611,7 +630,7 @@ export function setupAutobattlerEvents() {
     const minionEl = e.target.closest('.ab-minion');
     if (!minionEl) return;
     const uid = minionEl.dataset.uid;
-    const minion = game.players[0].bench.find((m) => m.uid === uid);
+    const minion = game.players[game.myPlayerIndex || 0].bench.find((m) => m.uid === uid);
     openMinionDetail(minion);
   });
 
@@ -623,7 +642,7 @@ export function setupAutobattlerEvents() {
       const slot = e.target.closest('.ab-board-slot');
       if (!slot) return;
       const pos = parseInt(slot.dataset.pos, 10);
-      const minion = game.players[0].board[pos];
+      const minion = game.players[game.myPlayerIndex || 0].board[pos];
       openMinionDetail(minion);
     });
   }
@@ -635,7 +654,7 @@ export function setupAutobattlerEvents() {
     const minionEl = e.target.closest('.ab-minion');
     if (!minionEl) return;
     const uid = minionEl.dataset.uid;
-    if (sellPiece(game.players[0], uid)) {
+    if (sellPiece(game.players[game.myPlayerIndex || 0], uid)) {
       render();
     }
   });
@@ -649,8 +668,8 @@ export function setupAutobattlerEvents() {
       const slot = e.target.closest('.ab-board-slot');
       if (slot) {
         const pos = parseInt(slot.dataset.pos, 10);
-        if (moveToBench(game.players[0], pos)) {
-          autoMerge(game.players[0]);
+        if (moveToBench(game.players[game.myPlayerIndex || 0], pos)) {
+          autoMerge(game.players[game.myPlayerIndex || 0]);
           render();
         }
       }

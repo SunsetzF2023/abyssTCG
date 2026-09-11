@@ -61,10 +61,12 @@ function randomPieceFromTier(tier) {
 
 // ─── Player state ─────────────────────────────────────────────
 
-export function createPlayer(name = 'Player', isAI = false) {
+export function createPlayer(name = 'Player', isAI = false, isRemote = false) {
   return {
+    id: null,
     name,
     isAI,
+    isRemote,
     hp: STARTING_HP,
     gold: STARTING_GOLD,
     level: 1,
