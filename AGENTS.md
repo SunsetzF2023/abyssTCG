@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`18ddf0c`
-  - 先手攻击完全单向，无论目标是否存活均不承受反击
+- **当前最新提交**：`206bc82`
+  - 战斗棋盘上方显示玩家与对手名称
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
