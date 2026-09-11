@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`de20637`
-  - 商店倒计时 60s + 自动准备；战斗动画异常保护
+- **当前最新提交**：`294b8e2`
+  - player_action 独立广播通道；购买/行动调试日志
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
