@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`e72a456`
-  - PVP 战斗动画全客户端同步 + 在线轮换对战匹配
+- **当前最新提交**：`631d531`
+  - 按规范加固卖出机制（阶段校验/金币上限/远程非商店阶段防护）
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
