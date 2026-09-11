@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`91bd4e2`
-  - 在线 PVP 菜单与房间大厅 UI
+- **当前最新提交**：`cb689f8`
+  - 在线 PVP 菜单/大厅 UI + Supabase 游戏状态广播通道
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
