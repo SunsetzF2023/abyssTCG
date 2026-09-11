@@ -69,11 +69,13 @@ export function subscribeToGameActions(roomId, onAction) {
   entry.channel.on('broadcast', { event: 'player_action' }, (payload) => {
     onAction(payload.payload);
   });
-  ensureChannel(entry);
-  return () => {
+  const ready = ensureChannel(entry);
+  const unsubscribe = () => {
     entry.channel.unsubscribe();
     actionChannels.delete(roomId);
   };
+  unsubscribe.ready = ready;
+  return unsubscribe;
 }
 
 export async function broadcastGameState(roomId, game) {

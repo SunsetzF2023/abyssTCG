@@ -39,8 +39,9 @@ function startAutoReadyTimer() {
     if (!game || game.phase !== 'shop') return;
     const myIndex = game.myPlayerIndex || 0;
     const player = game.players[myIndex];
-    if (!player || player.ready) return;
-    if (Date.now() >= (game.shopEndTime || 0)) {
+    if (!player) return;
+    renderPlayerInfo();
+    if (!player.ready && Date.now() >= (game.shopEndTime || 0)) {
       document.getElementById('ab-ready')?.click();
     }
   }, 500);
@@ -98,6 +99,7 @@ export function startPvpGame(newGame) {
 
   render();
   startAutoReadyTimer();
+  return unsubscribeActions?.ready || Promise.resolve();
 }
 
 function applyRemoteAction(action) {
@@ -184,7 +186,7 @@ function render() {
 
 function broadcastIfHost() {
   if (game?.isOnline && game?.isHost) {
-    broadcastGameState(game).catch((e) => console.error('[pvp] broadcast failed:', e));
+    broadcastGameState(game.roomId, game).catch((e) => console.error('[pvp] broadcast failed:', e));
   }
 }
 

@@ -172,8 +172,8 @@ async function onStartGame() {
   try {
     const game = createGameFromOnlineRoom(currentRoom, currentMyIndex, true);
     await setRoomStatus(currentRoom.id, 'playing');
+    await startPvpGame(game);
     await broadcastGameState(currentRoom.id, game);
-    startPvpGame(game);
   } catch (e) {
     alert(`启动游戏失败：${e.message}`);
   }
