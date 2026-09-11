@@ -113,6 +113,8 @@ function renderBoards() {
     const myBattle = game.battles.find((b) => b.player1 === player.name || b.player2 === player.name);
     if (myBattle && !myBattle.ghost) {
       const isAttacker = myBattle.player1 === player.name;
+      document.getElementById('ab-player-name').textContent = player.name;
+      document.getElementById('ab-enemy-name').textContent = isAttacker ? myBattle.player2 : myBattle.player1;
       const enemyBoard = isAttacker ? myBattle.result.defenderSurvivors : myBattle.result.attackerSurvivors;
       if (enemyBoard && enemyBoard.length > 0) {
         renderSnapshot(enemyFront, enemyBoard.slice(0, 3));
@@ -121,6 +123,9 @@ function renderBoards() {
         enemyBack.innerHTML = '<div class="ab-combat-msg">战斗已结算</div>';
       }
     }
+  } else {
+    document.getElementById('ab-player-name').textContent = player.name;
+    document.getElementById('ab-enemy-name').textContent = '敌方';
   }
 }
 

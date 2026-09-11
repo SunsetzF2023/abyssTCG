@@ -229,8 +229,9 @@ body {
   border: 1px dashed #333; flex: 1; max-width: 360px;
 }
 .ab-enemy-board { border-color: #e0574a44; }
-.ab-ab-player-board { border-color: #5b8def44; }
+.ab-player-board { border-color: #5b8def44; }
 .ab-vs { font-size: 2rem; color: #6b7086; display: flex; align-items: center; }
+.ab-board-name { font-size: 0.85rem; font-weight: 700; text-align: center; color: #d0d4e4; margin-bottom: 4px; }
 .ab-row-label { font-size: 0.7rem; color: #6b7086; text-align: center; }
 .ab-front-row, .ab-back-row {
   display: flex; gap: 6px; justify-content: center;
