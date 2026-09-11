@@ -370,3 +370,22 @@ body {
   font-size: 0.8rem; color: #aab0c6; font-style: italic; line-height: 1.4; margin-bottom: 6px;
 }
 #shop-detail-buy { width: 100%; }
+
+/* ─── Online PVP ─── */
+#screen-pvp-menu { text-align: center; padding: 20px; }
+.ab-pvp-menu { max-width: 480px; margin: 0 auto; }
+.ab-pvp-controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.ab-pvp-join { display: flex; gap: 8px; justify-content: center; }
+.ab-pvp-join input { width: 120px; text-align: center; }
+.ab-pvp-section-title { margin: 20px 0 10px; color: #d0d4e4; }
+.ab-pvp-online { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.ab-pvp-player { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #11131c; border-radius: 8px; border: 1px dashed #333; }
+.ab-pvp-empty { color: #6b7086; font-size: 0.85rem; }
+.ab-pvp-invites { margin-bottom: 20px; }
+.ab-pvp-invite { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 10px; background: #1a2040; border-radius: 8px; margin-bottom: 8px; }
+.ab-pvp-lobby { max-width: 480px; margin: 0 auto; }
+.ab-pvp-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.ab-pvp-slot { display: flex; align-items: center; gap: 10px; padding: 10px; background: #11131c; border-radius: 8px; border: 1px dashed #333; }
+.ab-pvp-slot-index { font-size: 0.7rem; color: #6b7086; width: 24px; }
+.ab-pvp-slot-name { flex: 1; text-align: left; color: #d0d4e4; }
+.ab-pvp-lobby-controls { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }

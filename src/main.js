@@ -4,6 +4,7 @@ import './game.js';
 import './supabase-config.js';
 import { supabaseClient } from './supabase-config.js';
 import { startAutobattler, setupAutobattlerEvents } from './autobattler/ui.js';
+import { initPvpMenu } from './autobattler/online.js';
 import { initAuth, signInWithGitHub, signOut, getDisplayName } from './supabase-auth.js';
 
 // ─── Supabase Auth ─────────────────────────────────────────────
@@ -35,6 +36,11 @@ document.getElementById('mode-classic').addEventListener('click', () => {
 
 document.getElementById('mode-autobattler').addEventListener('click', () => {
   startAutobattler();
+});
+
+document.getElementById('mode-pvp')?.addEventListener('click', () => {
+  document.getElementById('screen-menu')?.classList.add('hidden');
+  initPvpMenu();
 });
 
 // ─── Autobattler events ────────────────────────────────────────

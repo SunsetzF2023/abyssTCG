@@ -18,12 +18,44 @@
     </div>
     <div class="mode-card" id="mode-autobattler">
       <div class="mode-icon">♟️</div>
-      <div class="mode-name">战棋模式</div>
+      <div class="mode-name">本地战棋</div>
       <div class="mode-desc">8 人自走棋 · 商店购买 · 三合升星<br>自动战斗 · 存活棋子结算伤害</div>
+    </div>
+    <div class="mode-card" id="mode-pvp">
+      <div class="mode-icon">🌐</div>
+      <div class="mode-name">在线 PVP</div>
+      <div class="mode-desc">创建/加入房间 · 邀请好友<br>Supabase 实时联机对战</div>
     </div>
   </div>
   <div id="faction-grid" class="faction-grid hidden"></div>
   <p class="mvp-note">战棋模式为全新开发中功能，棋子与平衡性会持续调整。</p>
+</div>
+
+<div id="screen-pvp-menu" class="screen hidden">
+  <h1 class="title">在线 PVP</h1>
+  <div id="ab-pvp-menu" class="ab-pvp-menu">
+    <div class="ab-pvp-controls">
+      <button id="ab-pvp-create" class="btn-ab">创建房间</button>
+      <div class="ab-pvp-join">
+        <input id="ab-pvp-code" type="text" placeholder="输入房间码" maxlength="6" />
+        <button id="ab-pvp-join" class="btn-ab">加入房间</button>
+      </div>
+      <button id="ab-pvp-refresh" class="btn-ab">刷新在线玩家</button>
+      <button id="ab-pvp-back" class="btn-small">← 返回菜单</button>
+    </div>
+    <div id="ab-pvp-invites" class="ab-pvp-invites"></div>
+    <h3 class="ab-pvp-section-title">在线玩家</h3>
+    <div id="ab-pvp-online" class="ab-pvp-online"></div>
+  </div>
+  <div id="ab-pvp-lobby" class="ab-pvp-lobby hidden">
+    <h3 id="ab-pvp-room-code">房间码：----</h3>
+    <div id="ab-pvp-slots" class="ab-pvp-slots"></div>
+    <div class="ab-pvp-lobby-controls">
+      <button id="ab-pvp-fill-ai" class="btn-ab">一键补全 AI</button>
+      <button id="ab-pvp-start" class="btn-ab" disabled>开始游戏</button>
+      <button id="ab-pvp-lobby-back" class="btn-small">← 返回</button>
+    </div>
+  </div>
 </div>
 
 <div id="screen-battle" class="screen hidden">

@@ -7,6 +7,7 @@ const browserGlobals = {
   setTimeout: 'readonly',
   clearTimeout: 'readonly',
   Math: 'readonly',
+  alert: 'readonly',
 };
 
 const nodeGlobals = {
