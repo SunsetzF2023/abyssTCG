@@ -128,16 +128,16 @@ export function buyPiece(player, shopIndex) {
 }
 
 export function sellPiece(player, minionUid) {
-  const benchIdx = player.bench.findIndex((m) => m.uid === minionUid);
+  const benchIdx = player.bench.findIndex((m) => m && m.uid === minionUid);
   if (benchIdx !== -1) {
     player.bench.splice(benchIdx, 1);
-    player.gold += SELL_PRICE;
+    player.gold = Math.min(MAX_GOLD, player.gold + SELL_PRICE);
     return true;
   }
   const boardIdx = player.board.findIndex((m) => m && m.uid === minionUid);
   if (boardIdx !== -1) {
     player.board[boardIdx] = null;
-    player.gold += SELL_PRICE;
+    player.gold = Math.min(MAX_GOLD, player.gold + SELL_PRICE);
     return true;
   }
   return false;

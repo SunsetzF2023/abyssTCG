@@ -82,7 +82,7 @@ export function startPvpGame(newGame) {
 }
 
 function applyRemoteAction(action) {
-  if (!game || !game.isHost) return;
+  if (!game || !game.isHost || game.phase !== 'shop') return;
   const player = game.players[action.playerIndex];
   if (!player) return;
 
