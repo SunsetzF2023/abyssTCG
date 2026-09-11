@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`4fb8977`
-  - 修复在线 PVP 加入房间（服务器端 join_room_by_code）
+- **当前最新提交**：`4bd3a28`
+  - 修复 PVP 广播通道未订阅 + 房主拖拽放置失效
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
