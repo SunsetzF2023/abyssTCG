@@ -1,18 +1,15 @@
 -- ============================================================
 -- Supabase schema for abyssTCG real-time 8-player PVP rooms
 --
+-- Uses the `ab_` prefix so these tables do not collide with other
+-- projects sharing the same Supabase database (e.g. spire-climber).
 -- Run this in the Supabase SQL Editor before using the client.
--- Tables: profiles, rooms, invitations
+-- Tables: ab_profiles, ab_rooms, ab_invitations
 -- RLS is enabled for public client-side access.
 -- ============================================================
 
--- Clean slate for first-time setup
-DROP TABLE IF EXISTS public.invitations CASCADE;
-DROP TABLE IF EXISTS public.rooms CASCADE;
-DROP TABLE IF EXISTS public.profiles CASCADE;
-
 -- Track online status and current room for every user
-CREATE TABLE IF NOT EXISTS public.profiles (
+CREATE TABLE IF NOT EXISTS public.ab_profiles (
   id uuid PRIMARY KEY,
   username text,
   is_online boolean DEFAULT true,
@@ -20,22 +17,22 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at timestamp with time zone DEFAULT now()
 );
 
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_profiles ENABLE ROW LEVEL SECURITY;
 
 -- Users can update only their own profile
-CREATE POLICY "profiles_self_update" ON public.profiles
+CREATE POLICY "ab_profiles_self_update" ON public.ab_profiles
   FOR UPDATE USING (auth.uid() = id);
 
 -- Users can insert only their own profile
-CREATE POLICY "profiles_self_insert" ON public.profiles
+CREATE POLICY "ab_profiles_self_insert" ON public.ab_profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Online list is visible to everyone
-CREATE POLICY "profiles_select_all" ON public.profiles
+CREATE POLICY "ab_profiles_select_all" ON public.ab_profiles
   FOR SELECT USING (true);
 
 -- Core room table with 8 fixed slots
-CREATE TABLE IF NOT EXISTS public.rooms (
+CREATE TABLE IF NOT EXISTS public.ab_rooms (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   room_code text UNIQUE NOT NULL,
   host_id uuid NOT NULL,
@@ -52,22 +49,22 @@ CREATE TABLE IF NOT EXISTS public.rooms (
   updated_at timestamp with time zone DEFAULT now()
 );
 
-ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_rooms ENABLE ROW LEVEL SECURITY;
 
 -- Room owners can update anything in their room
-CREATE POLICY "rooms_host_update" ON public.rooms
+CREATE POLICY "ab_rooms_host_update" ON public.ab_rooms
   FOR UPDATE USING (auth.uid() = host_id);
 
 -- Anyone can create a room
-CREATE POLICY "rooms_insert" ON public.rooms
+CREATE POLICY "ab_rooms_insert" ON public.ab_rooms
   FOR INSERT WITH CHECK (auth.uid() = host_id);
 
 -- Room data is visible to everyone in the room code flow
-CREATE POLICY "rooms_select_all" ON public.rooms
+CREATE POLICY "ab_rooms_select_all" ON public.ab_rooms
   FOR SELECT USING (true);
 
 -- Invitations between players
-CREATE TABLE IF NOT EXISTS public.invitations (
+CREATE TABLE IF NOT EXISTS public.ab_invitations (
   id bigserial PRIMARY KEY,
   sender_id uuid NOT NULL,
   receiver_id uuid NOT NULL,
@@ -76,22 +73,22 @@ CREATE TABLE IF NOT EXISTS public.invitations (
   created_at timestamp with time zone DEFAULT now()
 );
 
-ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ab_invitations ENABLE ROW LEVEL SECURITY;
 
 -- Senders can create invites
-CREATE POLICY "invitations_insert" ON public.invitations
+CREATE POLICY "ab_invitations_insert" ON public.ab_invitations
   FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
 -- Receivers can update (accept/reject) their own invites
-CREATE POLICY "invitations_receiver_update" ON public.invitations
+CREATE POLICY "ab_invitations_receiver_update" ON public.ab_invitations
   FOR UPDATE USING (auth.uid() = receiver_id);
 
 -- Both sender and receiver can see the invite
-CREATE POLICY "invitations_select" ON public.invitations
+CREATE POLICY "ab_invitations_select" ON public.ab_invitations
   FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 
 -- Indexes for realtime filters
-CREATE INDEX IF NOT EXISTS idx_rooms_code ON public.rooms(room_code);
-CREATE INDEX IF NOT EXISTS idx_rooms_status ON public.rooms(status);
-CREATE INDEX IF NOT EXISTS idx_profiles_online ON public.profiles(is_online);
-CREATE INDEX IF NOT EXISTS idx_invitations_receiver ON public.invitations(receiver_id);
+CREATE INDEX IF NOT EXISTS idx_ab_rooms_code ON public.ab_rooms(room_code);
+CREATE INDEX IF NOT EXISTS idx_ab_rooms_status ON public.ab_rooms(status);
+CREATE INDEX IF NOT EXISTS idx_ab_profiles_online ON public.ab_profiles(is_online);
+CREATE INDEX IF NOT EXISTS idx_ab_invitations_receiver ON public.ab_invitations(receiver_id);

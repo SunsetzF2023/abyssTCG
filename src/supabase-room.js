@@ -34,7 +34,7 @@ export async function createRoom() {
   );
 
   const { data, error } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .insert({
       room_code: roomCode,
       host_id: user.id,
@@ -55,7 +55,7 @@ export async function joinRoomByCode(roomCode) {
   if (!user) throw new Error('Not signed in');
 
   const { data: room, error: fetchError } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .select('*')
     .eq('room_code', roomCode)
     .eq('status', 'lobby')
@@ -71,7 +71,7 @@ export async function joinRoomByCode(roomCode) {
 
   const updates = { [`slot_${firstEmpty}`]: user.id };
   const { data, error } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .update(updates)
     .eq('id', room.id)
     .select()
@@ -85,7 +85,7 @@ export async function joinRoomByCode(roomCode) {
 
 export async function fillRoomWithAI(roomId) {
   const { data: room, error: fetchError } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .select('*')
     .eq('id', roomId)
     .single();
@@ -100,7 +100,7 @@ export async function fillRoomWithAI(roomId) {
   }
 
   const { data, error } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .update(updates)
     .eq('id', roomId)
     .select()
@@ -112,7 +112,7 @@ export async function fillRoomWithAI(roomId) {
 
 export async function setRoomStatus(roomId, status) {
   const { data, error } = await supabaseClient
-    .from('rooms')
+    .from('ab_rooms')
     .update({ status })
     .eq('id', roomId)
     .select()
@@ -127,7 +127,7 @@ export function subscribeToRoom(roomId, onUpdate) {
     .channel(`room:${roomId}`)
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+      { event: '*', schema: 'public', table: 'ab_rooms', filter: `id=eq.${roomId}` },
       (payload) => onUpdate(payload.new),
     )
     .subscribe();
@@ -137,7 +137,7 @@ export function subscribeToRoom(roomId, onUpdate) {
 
 export async function listOnlinePlayers() {
   const { data, error } = await supabaseClient
-    .from('profiles')
+    .from('ab_profiles')
     .select('id, username, current_room_id')
     .eq('is_online', true)
     .is('current_room_id', null);
@@ -151,7 +151,7 @@ export async function sendInvite(receiverId, roomCode) {
   if (!user) throw new Error('Not signed in');
 
   const { data, error } = await supabaseClient
-    .from('invitations')
+    .from('ab_invitations')
     .insert({
       sender_id: user.id,
       receiver_id: receiverId,
@@ -170,7 +170,7 @@ export async function acceptInvite(inviteId, roomCode) {
   if (!user) throw new Error('Not signed in');
 
   const { error: updateError } = await supabaseClient
-    .from('invitations')
+    .from('ab_invitations')
     .update({ status: 'accepted' })
     .eq('id', inviteId)
     .eq('receiver_id', user.id);
@@ -185,7 +185,7 @@ export async function rejectInvite(inviteId) {
   if (!user) throw new Error('Not signed in');
 
   const { error } = await supabaseClient
-    .from('invitations')
+    .from('ab_invitations')
     .update({ status: 'rejected' })
     .eq('id', inviteId)
     .eq('receiver_id', user.id);
@@ -201,7 +201,7 @@ export function subscribeToInvites(onInvite) {
     .channel(`invites:${user.id}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'invitations', filter: `receiver_id=eq.${user.id}` },
+      { event: 'INSERT', schema: 'public', table: 'ab_invitations', filter: `receiver_id=eq.${user.id}` },
       (payload) => onInvite(payload.new),
     )
     .subscribe();
@@ -214,7 +214,7 @@ export async function ensureProfile() {
   if (!user) return;
 
   const { data, error } = await supabaseClient
-    .from('profiles')
+    .from('ab_profiles')
     .upsert({
       id: user.id,
       username: getDisplayName(user),
@@ -232,7 +232,7 @@ export async function setOnlineStatus(online) {
   if (!user) return;
 
   const { error } = await supabaseClient
-    .from('profiles')
+    .from('ab_profiles')
     .update({ is_online: online })
     .eq('id', user.id);
 
@@ -244,7 +244,7 @@ export async function setCurrentRoom(roomId) {
   if (!user) return;
 
   const { error } = await supabaseClient
-    .from('profiles')
+    .from('ab_profiles')
     .update({ current_room_id: roomId })
     .eq('id', user.id);
 
