@@ -13,8 +13,13 @@
 import { RACE_INFO } from './pieces.js';
 
 const EVENT_DELAY_MS = 500;
+let HUMAN_SIDE = 'attacker';
 
 function otherSide(side) { return side === 'attacker' ? 'defender' : 'attacker'; }
+
+export function setHumanSide(side) {
+  HUMAN_SIDE = side;
+}
 
 export function createCombatCard(m, side) {
   const race = RACE_INFO[m.race] || { icon: '', color: '#888' };
@@ -38,7 +43,7 @@ export function createCombatCard(m, side) {
 }
 
 function getSlotId(side, pos) {
-  const isPlayer = side === 'attacker';
+  const isPlayer = side === HUMAN_SIDE;
   const row = pos < 3 ? 'front' : 'back';
   return isPlayer ? `ab-player-${row}` : `ab-enemy-${row}`;
 }
@@ -60,10 +65,12 @@ function renderBoardRowTo(container, board, side, start, end) {
 }
 
 export function renderInitialBoards(initialBoards) {
-  renderBoardRowTo(document.getElementById('ab-enemy-front'), initialBoards.defender, 'defender', 0, 3);
-  renderBoardRowTo(document.getElementById('ab-enemy-back'), initialBoards.defender, 'defender', 3, 6);
-  renderBoardRowTo(document.getElementById('ab-player-front'), initialBoards.attacker, 'attacker', 0, 3);
-  renderBoardRowTo(document.getElementById('ab-player-back'), initialBoards.attacker, 'attacker', 3, 6);
+  const human = HUMAN_SIDE === 'attacker' ? initialBoards.attacker : initialBoards.defender;
+  const enemy = HUMAN_SIDE === 'attacker' ? initialBoards.defender : initialBoards.attacker;
+  renderBoardRowTo(document.getElementById('ab-enemy-front'), enemy, otherSide(HUMAN_SIDE), 0, 3);
+  renderBoardRowTo(document.getElementById('ab-enemy-back'), enemy, otherSide(HUMAN_SIDE), 3, 6);
+  renderBoardRowTo(document.getElementById('ab-player-front'), human, HUMAN_SIDE, 0, 3);
+  renderBoardRowTo(document.getElementById('ab-player-back'), human, HUMAN_SIDE, 3, 6);
 }
 
 function getCard(side, uid) {
@@ -399,7 +406,8 @@ async function cleanupDeadFromLog(result) {
   });
 }
 
-export async function playBattleAnimation(result, onDone) {
+export async function playBattleAnimation(result, humanSide, onDone) {
+  setHumanSide(humanSide);
   renderInitialBoards(result.initialBoards);
   await sleep(400); // let the board settle
 

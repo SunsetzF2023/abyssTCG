@@ -350,7 +350,8 @@ function startCombatAnimation() {
   document.getElementById('ab-combat-controls').classList.add('hidden');
   render();
 
-  playBattleAnimation(myBattle.result, onBattleAnimationDone);
+  const humanSide = myBattle.player1 === player.name ? 'attacker' : 'defender';
+  playBattleAnimation(myBattle.result, humanSide, onBattleAnimationDone);
 }
 
 function onBattleAnimationDone() {
