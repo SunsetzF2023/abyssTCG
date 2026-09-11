@@ -359,6 +359,8 @@ body {
 .ab-level { color: #6b7fff; }
 .ab-income { color: #8affa0; }
 .ab-board-count { color: #9aa0b4; }
+.ab-timer { color: #8affa0; font-weight: 700; }
+.ab-timer.urgent { color: #ff4d4d; }
 
 .ab-combat-log {
   background: #11131c; border-radius: 10px; padding: 12px 16px;

@@ -428,11 +428,15 @@ export async function playBattleAnimation(result, humanSide, onDone) {
   renderInitialBoards(result.initialBoards);
   await sleep(400); // let the board settle
 
-  for (const ev of result.log) {
-    await playEvent(ev);
-    await sleep(EVENT_DELAY_MS);
+  try {
+    for (const ev of result.log) {
+      await playEvent(ev);
+      await sleep(EVENT_DELAY_MS);
+    }
+    await cleanupDeadFromLog(result);
+  } catch (e) {
+    console.error('[animator] battle animation error:', e);
+  } finally {
+    onDone();
   }
-
-  await cleanupDeadFromLog(result);
-  onDone();
 }

@@ -18,6 +18,7 @@ import { SLOT_TYPE } from './room.js';
 
 export const PLAYER_COUNT = 8;
 export const MAX_ROUNDS = 30;
+export const PREP_TIME_MS = 60000;
 
 // ─── AI logic (simple greedy) ──────────────────────────────────
 
@@ -111,6 +112,7 @@ export function createGame(humanPlayerName = 'You', seed = Date.now()) {
     battles: [],   // results of current round
     log: [],
     winner: null,
+    shopEndTime: Date.now() + PREP_TIME_MS,
   };
 }
 
@@ -138,6 +140,7 @@ export function createGameFromRoom(room, seed = Date.now()) {
     battles: [],
     log: [],
     winner: null,
+    shopEndTime: Date.now() + PREP_TIME_MS,
   };
 }
 
@@ -172,6 +175,7 @@ export function createGameFromOnlineRoom(room, myPlayerIndex, isHost, seed = Dat
     battles: [],
     log: [],
     winner: null,
+    shopEndTime: Date.now() + PREP_TIME_MS,
     isOnline: true,
     isHost,
     myPlayerIndex,
@@ -334,6 +338,7 @@ export function resolveCombatPhase(game) {
 export function advanceToNextRound(game) {
   game.round++;
   game.phase = 'shop';
+  game.shopEndTime = Date.now() + PREP_TIME_MS;
 
   // Start next round for alive players
   for (const p of game.players) {

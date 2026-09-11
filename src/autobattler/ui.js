@@ -29,8 +29,22 @@ let selectedShopIndex = null;
 let dragJustEnded = false;
 let dragResetTimer = null;
 let unsubscribeActions = null;
+let autoReadyTimer = null;
 
 // ─── Screen management ────────────────────────────────────────
+
+function startAutoReadyTimer() {
+  if (autoReadyTimer) clearInterval(autoReadyTimer);
+  autoReadyTimer = setInterval(() => {
+    if (!game || game.phase !== 'shop') return;
+    const myIndex = game.myPlayerIndex || 0;
+    const player = game.players[myIndex];
+    if (!player || player.ready) return;
+    if (Date.now() >= (game.shopEndTime || 0)) {
+      document.getElementById('ab-ready')?.click();
+    }
+  }, 500);
+}
 
 const abScreen = () => document.getElementById('screen-autobattler');
 
@@ -60,6 +74,10 @@ export function exitAutobattler() {
     unsubscribeActions();
     unsubscribeActions = null;
   }
+  if (autoReadyTimer) {
+    clearInterval(autoReadyTimer);
+    autoReadyTimer = null;
+  }
 }
 
 export function startPvpGame(newGame) {
@@ -79,6 +97,7 @@ export function startPvpGame(newGame) {
   }
 
   render();
+  startAutoReadyTimer();
 }
 
 function applyRemoteAction(action) {
@@ -221,6 +240,7 @@ function renderLobby() {
     startGame(room);
     game = createGameFromRoom(room);
     render();
+    startAutoReadyTimer();
   });
 
   lobby.querySelectorAll('.ab-lobby-kick').forEach((btn) => {
@@ -438,10 +458,13 @@ function renderPlayerInfo() {
   const levelText = levelInfo.xpNeeded === Infinity
     ? `Lv MAX`
     : `Lv ${player.level} (升级还需 ${upgradeCost}💰)`;
+  const timeLeft = Math.max(0, Math.ceil(((game.shopEndTime || 0) - Date.now()) / 1000));
+  const timerClass = timeLeft <= 10 ? 'ab-timer urgent' : 'ab-timer';
   document.getElementById('ab-player-info').innerHTML = `
     <span class="ab-gold">💰 ${player.gold}</span>
     <span class="ab-hp">❤️ ${player.hp}</span>
     <span class="ab-level">${levelText}</span>
+    <span class="${timerClass}">剩余时间: ${timeLeft}s</span>
     <span class="ab-income">下回合收入: ${income}💰</span>
     <span class="ab-board-count">棋盘: ${player.board.filter(Boolean).length}/6</span>
   `;
