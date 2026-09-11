@@ -6,6 +6,11 @@
 -- RLS is enabled for public client-side access.
 -- ============================================================
 
+-- Clean slate for first-time setup
+DROP TABLE IF EXISTS public.invitations CASCADE;
+DROP TABLE IF EXISTS public.rooms CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
 -- Track online status and current room for every user
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY,
