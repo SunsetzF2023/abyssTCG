@@ -445,8 +445,10 @@ function cleanupDead(state, side) {
   });
 }
 
-/** Runs one attack by `attacker`. Returns the target if attacked. */
-function performAttack(state, attackerSide, attacker) {
+/** Runs one attack by `attacker`. Returns the target if attacked.
+ *  Normal attacks are simultaneous: both attacker and target take damage at the same time.
+ *  First-strike attacks are one-way; the target only retaliates if it survives. */
+function performAttack(state, attackerSide, attacker, isFirstStrike = false) {
   const defenderSide = otherSide(attackerSide);
   const target = pickTarget(state[defenderSide].board);
   if (!target) return null;
@@ -529,16 +531,30 @@ function performAttack(state, attackerSide, attacker) {
     }
   }
 
-  // Target retaliates if still alive
-  if (target.health > 0) {
-    applyDamage(attacker, target.attack);
+  // Simultaneous retaliation (or one-way for first-strike)
+  if (isFirstStrike) {
+    if (target.health > 0) {
+      const counterAtk = effAttack(target);
+      applyDamage(attacker, counterAtk);
+      logEvent(state, {
+        type: 'counter',
+        side: attackerSide,
+        targetUid: attacker.uid,
+        targetName: attacker.name,
+        targetPos: attackerPos,
+        damage: counterAtk,
+      });
+    }
+  } else {
+    const counterAtk = effAttack(target);
+    applyDamage(attacker, counterAtk);
     logEvent(state, {
       type: 'counter',
       side: attackerSide,
       targetUid: attacker.uid,
       targetName: attacker.name,
       targetPos: attackerPos,
-      damage: target.attack,
+      damage: counterAtk,
     });
   }
 
@@ -618,7 +634,7 @@ function combatRound(state) {
           sourceName: attacker.name,
           sourcePos: posOf(state[side].board, attacker),
         });
-        performAttack(state, side, attacker);
+        performAttack(state, side, attacker, true);
       }
     }
   }
@@ -633,6 +649,7 @@ function combatRound(state) {
 
     const stillAlive = state[entry.side].board.find((m) => m && m.uid === entry.minion.uid);
     if (!stillAlive || stillAlive.attacksLeft <= 0) continue;
+    if (stillAlive.ability && stillAlive.ability.type === 'firstStrike') continue;
 
     while (stillAlive.attacksLeft > 0 && stillAlive.health > 0) {
       stillAlive.attacksLeft--;

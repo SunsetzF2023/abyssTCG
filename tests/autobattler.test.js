@@ -109,11 +109,12 @@ describe('resolveBattle — abilities', () => {
     expect(['attacker', 'defender', 'draw']).toContain(result.winner);
   });
 
-  it('poison kills target regardless of health', () => {
-    const attacker = makeBoard({ pieceId: 't3_phantom', star: 1 }); // 5/2 poison
-    const defender = makeBoard({ pieceId: 't5_paladin', star: 1 }); // 5/8 taunt
+  it('firstStrike prevents counter when killing', () => {
+    const attacker = makeBoard({ pieceId: 't2_hyena', star: 1 }); // 3/2 first strike
+    const defender = makeBoard({ pieceId: 't2_whelp', star: 1 }); // 3/3
     const result = resolveBattle(attacker, defender);
-    expect(['attacker', 'defender', 'draw']).toContain(result.winner);
+    expect(result.winner).toBe('attacker');
+    expect(result.attackerSurvivors[0].name).toBe('鬣狗');
   });
 
   it('deathrattle summon creates new minions', () => {
@@ -169,6 +170,35 @@ describe('resolveBattle — damage settlement', () => {
     if (result.winner === 'attacker' && result.survivors.length === 1) {
       expect(result.damageDealt).toBe(2); // star 2
     }
+  });
+});
+
+describe('resolveBattle — simultaneous retaliation', () => {
+  it('4/4 vs 3/4: both take damage, attacker survives with 1 hp', () => {
+    const attacker = createMinion('t1_wanderer', 1);
+    attacker.attack = 4;
+    attacker.health = 4;
+    attacker.maxHealth = 4;
+    const defender = createMinion('t1_wanderer', 1);
+    defender.attack = 3;
+    defender.health = 4;
+    defender.maxHealth = 4;
+    const result = resolveBattle([attacker], [defender]);
+    expect(result.winner).toBe('attacker');
+    expect(result.attackerSurvivors[0].health).toBe(1);
+  });
+
+  it('equal stats trade: both minions die', () => {
+    const a = createMinion('t1_wanderer', 1);
+    a.attack = 3;
+    a.health = 3;
+    a.maxHealth = 3;
+    const d = createMinion('t1_wanderer', 1);
+    d.attack = 3;
+    d.health = 3;
+    d.maxHealth = 3;
+    const result = resolveBattle([a], [d]);
+    expect(result.winner).toBe('draw');
   });
 });
 
