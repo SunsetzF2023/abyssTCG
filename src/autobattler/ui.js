@@ -582,13 +582,12 @@ function onDrop(e) {
   const bench = e.target.closest && e.target.closest('#ab-bench');
   const myIndex = game.myPlayerIndex || 0;
   const player = game.players[myIndex];
+  const isRemote = game?.isOnline && !game?.isHost;
 
   if (bench) {
     if (typeof draggedSource === 'number') {
-      if (game?.isOnline) {
-        if (!game.isHost) {
-          sendPlayerAction(game.roomId, { type: 'moveToBench', playerIndex: myIndex, pos: draggedSource });
-        }
+      if (isRemote) {
+        sendPlayerAction(game.roomId, { type: 'moveToBench', playerIndex: myIndex, pos: draggedSource });
       } else if (moveToBench(player, draggedSource)) {
         autoMerge(player);
         render();
@@ -603,10 +602,8 @@ function onDrop(e) {
   if (!slot) return;
   const targetPos = parseInt(slot.dataset.pos, 10);
   if (draggedUid) {
-    if (game?.isOnline) {
-      if (!game.isHost) {
-        sendPlayerAction(game.roomId, { type: 'move', playerIndex: myIndex, uid: draggedUid, targetPos });
-      }
+    if (isRemote) {
+      sendPlayerAction(game.roomId, { type: 'move', playerIndex: myIndex, uid: draggedUid, targetPos });
     } else if (placeMinion(player, draggedUid, targetPos)) {
       autoMerge(player);
       render();
