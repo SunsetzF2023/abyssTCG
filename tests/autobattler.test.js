@@ -109,9 +109,9 @@ describe('resolveBattle — abilities', () => {
     expect(['attacker', 'defender', 'draw']).toContain(result.winner);
   });
 
-  it('firstStrike prevents counter when killing', () => {
+  it('firstStrike is one-way even if the target survives', () => {
     const attacker = makeBoard({ pieceId: 't2_hyena', star: 1 }); // 3/2 first strike
-    const defender = makeBoard({ pieceId: 't2_whelp', star: 1 }); // 3/3
+    const defender = makeBoard({ pieceId: 't1_shieldbearer', star: 1 }); // 1/4 taunt
     const result = resolveBattle(attacker, defender);
     expect(result.winner).toBe('attacker');
     expect(result.attackerSurvivors[0].name).toBe('鬣狗');

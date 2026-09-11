@@ -531,21 +531,8 @@ function performAttack(state, attackerSide, attacker, isFirstStrike = false) {
     }
   }
 
-  // Simultaneous retaliation (or one-way for first-strike)
-  if (isFirstStrike) {
-    if (target.health > 0) {
-      const counterAtk = effAttack(target);
-      applyDamage(attacker, counterAtk);
-      logEvent(state, {
-        type: 'counter',
-        side: attackerSide,
-        targetUid: attacker.uid,
-        targetName: attacker.name,
-        targetPos: attackerPos,
-        damage: counterAtk,
-      });
-    }
-  } else {
+  // Simultaneous retaliation (first-strike is one-way)
+  if (!isFirstStrike) {
     const counterAtk = effAttack(target);
     applyDamage(attacker, counterAtk);
     logEvent(state, {
