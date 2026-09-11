@@ -313,7 +313,7 @@ function minionCard(m, isPlayer, isDraggable = true) {
   const abilityTag = m.ability ? abilityLabel(m.ability) : '';
   const dragAttr = isDraggable ? 'draggable="true"' : '';
   return `
-    <div class="ab-minion" data-uid="${m.uid}" data-side="${isPlayer ? 'player' : 'enemy'}"
+    <div class="ab-minion ${m.shield ? 'ab-shield-active' : ''}" data-uid="${m.uid}" data-side="${isPlayer ? 'player' : 'enemy'}"
          style="border-color:${race.color}" ${dragAttr}>
       <div class="ab-minion-stars">${stars}</div>
       <div class="ab-minion-icon">${race.icon}</div>

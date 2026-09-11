@@ -185,6 +185,7 @@ body {
 .ab-debuff { color: #ff9a5a; }
 .ab-buff-gain { color: #ffd700; text-shadow: 0 0 6px #ffd700; }
 .ab-debuff-lose { color: #e0e0ff; text-shadow: 0 0 4px #e0e0ff; }
+.ab-shield-break { color: #ff8c00; text-shadow: 0 0 6px #ff8c00; font-size: 1.1rem; }
 
 .ab-leap-clone {
   position: fixed;
@@ -276,7 +277,33 @@ body {
 .ab-minion-stats .hp.ab-stat-buffed { color: #ffd700; transform: scale(1.35); text-shadow: 0 0 6px #ffd700; }
 .ab-minion-stats .atk.ab-stat-debuffed,
 .ab-minion-stats .hp.ab-stat-debuffed { color: #ffffff; transform: scale(1.25); text-shadow: 0 0 4px #ffffff; }
-.ab-shield { position: absolute; top: 2px; right: 4px; font-size: 0.7rem; }
+.ab-shield { position: absolute; top: 2px; right: 4px; font-size: 0.85rem; z-index: 3; }
+
+.ab-minion.ab-shield-active {
+  position: relative;
+  box-shadow: 0 0 0 2px #ff8c00, 0 0 12px 5px rgba(255, 140, 0, 0.45);
+}
+
+.ab-minion.ab-shield-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 140, 0, 0.22), rgba(255, 165, 0, 0.08));
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes shield-break {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.6) rotate(20deg); opacity: 0.8; }
+  100% { transform: scale(2.5) rotate(-30deg); opacity: 0; }
+}
+
+.ab-shield-breaking {
+  animation: shield-break 0.45s ease-out forwards;
+  color: #ff8c00;
+}
 
 .ab-shop-area {
   display: flex; gap: 12px; align-items: flex-start; margin-top: 16px;

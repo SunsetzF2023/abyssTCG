@@ -26,7 +26,7 @@ export function createCombatCard(m, side) {
   const stars = '⭐'.repeat(m.star);
   const hpPercent = Math.max(0, Math.min(100, (m.health / m.maxHealth) * 100));
   return `
-    <div class="ab-minion ab-combat-minion" data-uid="${m.uid}" data-side="${side}" data-pos="${m.pos}"
+    <div class="ab-minion ab-combat-minion ${m.shield ? 'ab-shield-active' : ''}" data-uid="${m.uid}" data-side="${side}" data-pos="${m.pos}"
          data-max-hp="${m.maxHealth}" data-hp="${m.health}"
          style="border-color:${race.color}">
       <div class="ab-hp-bar"><div class="ab-hp-fill" style="width:${hpPercent}%"></div></div>
@@ -113,6 +113,17 @@ function showFloatingText(card, text, colorClass = '') {
   el.style.top = `${center.y - 20}px`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 900);
+}
+
+function breakShield(card) {
+  if (!card) return;
+  const shield = card.querySelector('.ab-shield');
+  if (!shield) return;
+  card?.classList.remove('ab-shield-active');
+  shield.textContent = '💥';
+  shield.classList.add('ab-shield-breaking');
+  showFloatingText(card, '护盾破碎', 'ab-shield-break');
+  setTimeout(() => shield?.remove(), 450);
 }
 
 function flashCard(card, flashClass, duration = 250) {
@@ -224,6 +235,8 @@ async function playAttackEvent(ev) {
 
   if (target) {
     flashCard(target, 'ab-hit');
+    const hadShield = target.querySelector('.ab-shield');
+    if (hadShield && ev.damage > 0) breakShield(target);
     showFloatingText(target, `-${ev.damage}`, 'ab-dmg');
     const newHp = parseInt(target.dataset.hp, 10) - ev.damage;
     updateHp(target, newHp);
@@ -235,6 +248,8 @@ async function playSplashEvent(ev) {
   const target = getCard(ev.side, ev.targetUid);
   if (target) {
     flashCard(target, 'ab-hit');
+    const hadShield = target.querySelector('.ab-shield');
+    if (hadShield && ev.damage > 0) breakShield(target);
     showFloatingText(target, `-${ev.damage}`, 'ab-dmg');
     const newHp = parseInt(target.dataset.hp, 10) - ev.damage;
     updateHp(target, newHp);
@@ -246,6 +261,8 @@ async function playCounterEvent(ev) {
   const target = getCard(ev.side, ev.targetUid);
   if (target) {
     flashCard(target, 'ab-hit');
+    const hadShield = target.querySelector('.ab-shield');
+    if (hadShield && ev.damage > 0) breakShield(target);
     showFloatingText(target, `-${ev.damage}`, 'ab-dmg');
     const newHp = parseInt(target.dataset.hp, 10) - ev.damage;
     updateHp(target, newHp);
