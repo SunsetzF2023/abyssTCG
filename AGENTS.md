@@ -11,8 +11,8 @@
 - **GitHub 仓库**：`https://github.com/SunsetzF2023/abyssTCG.git`
 - **GitHub Pages 测试地址**：`https://sunsetzf2023.github.io/abyssTCG/`
 - **Vite base path**：`/abyssTCG/`
-- **当前最新提交**：`1d2e0d5`
-  - 已新增约 112 条 PVP 咒术牌原始数据到 `src/autobattler/spells.js`
+- **当前最新提交**：`5362d8b`
+  - 实现战斗阶段双向同时结伤、先手单向攻击、护盾交互规则
 - **部署状态**：CI 与 GitHub Pages 部署均成功
 
 ## 2. 技术栈与命令
