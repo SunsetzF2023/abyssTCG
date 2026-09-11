@@ -8,7 +8,7 @@
 
 -- Track online status and current room for every user
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY,
   username text,
   is_online boolean DEFAULT true,
   current_room_id uuid,
